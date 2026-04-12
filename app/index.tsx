@@ -49,12 +49,14 @@ export default function HomeScreen({ navigation }: Props) {
     setIngredientText('');
   };
 
+  console.log('[HomeScreen] render — cameraState:', cameraState, '| capturedPhoto:', capturedPhoto?.uri ?? null);
+
   // ─── Camera active ────────────────────────────────────────────────────────
   if (cameraState === 'active') {
     return (
       <View style={styles.cameraContainer}>
         <StatusBar style="light" />
-        <CameraView ref={(r) => { cameraRef.current = r as unknown as import('expo-camera').CameraViewRef | null; }} style={StyleSheet.absoluteFill} facing="back" />
+        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 
         {/* Top bar */}
         <SafeAreaView style={styles.cameraTopBar}>
@@ -102,9 +104,13 @@ export default function HomeScreen({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
+                console.log('[HomeScreen] Analyser pressed — capturedPhoto:', capturedPhoto?.uri ?? null);
                 const uri = capturedPhoto.uri;
+                console.log('[HomeScreen] uri extracted:', uri);
                 closeCamera();
+                console.log('[HomeScreen] closeCamera() called, navigating to Analyse...');
                 navigation.navigate('Analyse', { photoUri: uri });
+                console.log('[HomeScreen] navigation.navigate() called');
               }}
               style={styles.capturePrimaryBtn}
             >
