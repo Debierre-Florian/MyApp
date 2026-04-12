@@ -15,7 +15,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { CameraView } from 'expo-camera';
 import { useState } from 'react';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
+import { RootStackParamList } from './navigator';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,7 +35,7 @@ const COLORS = {
   overlay: 'rgba(0,0,0,0.55)',
 };
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: Props) {
   const { cameraRef, permission, cameraState, capturedPhoto, openCamera, closeCamera, takePicture, retake } =
     useCamera();
 
@@ -40,8 +44,8 @@ export default function HomeScreen() {
 
   const handleManualSubmit = () => {
     if (!ingredientText.trim()) return;
-    // TODO: pass ingredientText to AI service
     setManualModalVisible(false);
+    navigation.navigate('Analyse', { ingredientText });
     setIngredientText('');
   };
 
@@ -98,8 +102,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
-                // TODO: send capturedPhoto.uri to AI service
                 closeCamera();
+                navigation.navigate('Analyse', { photoUri: capturedPhoto.uri });
               }}
               style={styles.capturePrimaryBtn}
             >
