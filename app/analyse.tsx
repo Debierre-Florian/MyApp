@@ -13,10 +13,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
+import { analysePhoto, type Recipe } from '../services/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Analyse'>;
 
-// ─── Design tokens (same palette as HomeScreen) ───────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
 const COLORS = {
   green: '#1B5E20',
   greenMid: '#2E7D32',
@@ -27,43 +28,12 @@ const COLORS = {
   textDark: '#1A1A1A',
   textMuted: '#6B7F6B',
   cardBorder: '#E8F0E8',
+  errorBg: '#FFF3F3',
+  errorBorder: '#FFCDD2',
+  errorText: '#C62828',
 };
 
-// ─── Hardcoded recipes ────────────────────────────────────────────────────────
-const RECIPES = [
-  {
-    id: '1',
-    name: 'Poulet rôti aux légumes',
-    time: '35 min',
-    difficulty: 'Facile',
-    emoji: '🍗',
-    ingredients: ['Poulet', 'Carottes', 'Pommes de terre', 'Ail', 'Thym'],
-    description: 'Un classique réconfortant, parfait pour utiliser les légumes du fond du frigo.',
-    calories: '420 kcal',
-  },
-  {
-    id: '2',
-    name: 'Omelette aux champignons',
-    time: '15 min',
-    difficulty: 'Très facile',
-    emoji: '🍳',
-    ingredients: ['Œufs', 'Champignons', 'Fromage râpé', 'Persil', 'Beurre'],
-    description: 'Rapide, nourrissante et délicieuse. Idéale pour un déjeuner express.',
-    calories: '310 kcal',
-  },
-  {
-    id: '3',
-    name: 'Soupe de courgettes',
-    time: '25 min',
-    difficulty: 'Facile',
-    emoji: '🥣',
-    ingredients: ['Courgettes', 'Oignon', 'Bouillon de légumes', 'Crème fraîche', 'Noix de muscade'],
-    description: 'Légère et veloutée, cette soupe est parfaite pour finir les courgettes.',
-    calories: '180 kcal',
-  },
-];
-
-// ─── Spinner component ────────────────────────────────────────────────────────
+// ─── Spinner ──────────────────────────────────────────────────────────────────
 function Spinner() {
   const rotation = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -96,10 +66,27 @@ function Spinner() {
   );
 }
 
+// ─── Loading dot ──────────────────────────────────────────────────────────────
+function LoadingDot({ delay }: { delay: number }) {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 500, delay, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return <Animated.View style={[styles.loadingDot, { opacity }]} />;
+}
+
 // ─── Recipe card ──────────────────────────────────────────────────────────────
-function RecipeCard({ recipe, index }: { recipe: (typeof RECIPES)[0]; index: number }) {
+function RecipeCard({ recipe, index }: { recipe: Recipe; index: number }) {
   const slideAnim = useRef(new Animated.Value(40)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -123,7 +110,7 @@ function RecipeCard({ recipe, index }: { recipe: (typeof RECIPES)[0]; index: num
     <Animated.View
       style={[styles.recipeCard, { opacity: opacityAnim, transform: [{ translateY: slideAnim }] }]}
     >
-      {/* Card header */}
+      {/* Header */}
       <View style={styles.recipeHeader}>
         <View style={styles.recipeEmojiWrapper}>
           <Text style={styles.recipeEmoji}>{recipe.emoji}</Text>
@@ -136,9 +123,6 @@ function RecipeCard({ recipe, index }: { recipe: (typeof RECIPES)[0]; index: num
             </View>
             <View style={[styles.badge, styles.badgeGreen]}>
               <Text style={[styles.badgeTxt, styles.badgeGreenTxt]}>{recipe.difficulty}</Text>
-            </View>
-            <View style={styles.badge}>
-              <Text style={styles.badgeTxt}>🔥 {recipe.calories}</Text>
             </View>
           </View>
         </View>
@@ -156,9 +140,29 @@ function RecipeCard({ recipe, index }: { recipe: (typeof RECIPES)[0]; index: num
         ))}
       </View>
 
-      {/* CTA */}
-      <TouchableOpacity style={styles.recipeBtn} activeOpacity={0.8}>
-        <Text style={styles.recipeBtnTxt}>Voir la recette complète</Text>
+      {/* Steps — toggled */}
+      {expanded && (
+        <View style={styles.stepsList}>
+          {recipe.steps.map((s) => (
+            <View key={s.step} style={styles.stepRow}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberTxt}>{s.step}</Text>
+              </View>
+              <Text style={styles.stepInstruction}>{s.instruction}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Toggle CTA */}
+      <TouchableOpacity
+        style={styles.recipeBtn}
+        activeOpacity={0.8}
+        onPress={() => setExpanded((v) => !v)}
+      >
+        <Text style={styles.recipeBtnTxt}>
+          {expanded ? 'Masquer les étapes ↑' : 'Voir les étapes ↓'}
+        </Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -167,44 +171,63 @@ function RecipeCard({ recipe, index }: { recipe: (typeof RECIPES)[0]; index: num
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function AnalyseScreen({ route, navigation }: Props) {
   const { photoUri, ingredientText } = route.params;
-  const [phase, setPhase] = useState<'loading' | 'results'>('loading');
 
-  // Simulate AI analysis for 2 seconds
+  type Phase = 'loading' | 'results' | 'error';
+  const [phase, setPhase] = useState<Phase>('loading');
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [detectedIngredients, setDetectedIngredients] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState('');
+
   useEffect(() => {
-    const timer = setTimeout(() => setPhase('results'), 2000);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+
+    async function run() {
+      try {
+        const result = await analysePhoto({ photoUri, ingredientText });
+        if (cancelled) return;
+        setRecipes(result.recipes);
+        setDetectedIngredients(result.detectedIngredients);
+        setPhase('results');
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue.';
+        setErrorMessage(message);
+        setPhase('error');
+      }
+    }
+
+    run();
+    return () => { cancelled = true; };
   }, []);
 
-  const handleRetake = () => {
-    navigation.goBack();
-  };
+  const handleRetake = () => navigation.goBack();
 
-  // ── Loading phase ────────────────────────────────────────────────────────
+  // ── Loading ──────────────────────────────────────────────────────────────
   if (phase === 'loading') {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar style="light" backgroundColor={COLORS.green} />
 
-        {/* Preview */}
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.previewImage} resizeMode="cover" />
         ) : (
           <View style={styles.textPreviewBox}>
-            <Text style={styles.textPreviewLabel}>Ingrédients détectés</Text>
+            <Text style={styles.textPreviewLabel}>Ingrédients saisis</Text>
             <Text style={styles.textPreviewContent}>{ingredientText}</Text>
           </View>
         )}
 
-        {/* Loader */}
         <View style={styles.loaderBox}>
           <Spinner />
           <Text style={styles.loaderTitle}>FrigoAI analyse votre frigo...</Text>
-          <Text style={styles.loaderSubtitle}>Identification des ingrédients et recherche de recettes</Text>
+          <Text style={styles.loaderSubtitle}>
+            Identification des ingrédients et recherche de recettes
+          </Text>
 
-          <View style={styles.stepsList}>
-            {['Analyse de l\'image', 'Identification des aliments', 'Génération des recettes'].map(
+          <View style={styles.stepsListLoader}>
+            {["Analyse de l'image", 'Identification des aliments', 'Génération des recettes'].map(
               (step, i) => (
-                <View key={step} style={styles.stepRow}>
+                <View key={step} style={styles.stepRowLoader}>
                   <LoadingDot delay={i * 300} />
                   <Text style={styles.stepTxt}>{step}</Text>
                 </View>
@@ -216,19 +239,48 @@ export default function AnalyseScreen({ route, navigation }: Props) {
     );
   }
 
-  // ── Results phase ────────────────────────────────────────────────────────
+  // ── Error ────────────────────────────────────────────────────────────────
+  if (phase === 'error') {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="light" backgroundColor={COLORS.green} />
+
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleRetake} style={styles.backBtn}>
+            <Text style={styles.backBtnTxt}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Erreur d'analyse</Text>
+          </View>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>Oups, quelque chose s'est mal passé</Text>
+          <View style={styles.errorBox}>
+            <Text style={styles.errorMsg}>{errorMessage}</Text>
+          </View>
+          <TouchableOpacity style={styles.retryBtn} onPress={handleRetake}>
+            <Text style={styles.retryBtnTxt}>← Réessayer</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Results ──────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" backgroundColor={COLORS.green} />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleRetake} style={styles.backBtn}>
           <Text style={styles.backBtnTxt}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Recettes suggérées</Text>
-          <Text style={styles.headerSubtitle}>3 idées pour ce soir</Text>
+          <Text style={styles.headerSubtitle}>{recipes.length} idées pour ce soir</Text>
         </View>
         <TouchableOpacity onPress={handleRetake} style={styles.retakeBtn}>
           <Text style={styles.retakeBtnTxt}>Recommencer</Text>
@@ -252,44 +304,44 @@ export default function AnalyseScreen({ route, navigation }: Props) {
           <View style={styles.sourceCard}>
             <View style={styles.sourceTextBox}>
               <Text style={styles.sourceTextLabel}>✏️  Ingrédients saisis</Text>
-              <Text style={styles.sourceTextContent} numberOfLines={2}>{ingredientText}</Text>
+              <Text style={styles.sourceTextContent} numberOfLines={2}>
+                {ingredientText}
+              </Text>
             </View>
           </View>
         )}
 
-        {/* Result count */}
+        {/* Detected ingredients */}
+        {detectedIngredients.length > 0 && (
+          <View style={styles.detectedBox}>
+            <Text style={styles.detectedTitle}>🔍  Ingrédients détectés</Text>
+            <View style={styles.ingredientsRow}>
+              {detectedIngredients.map((ing) => (
+                <View key={ing} style={[styles.ingredientChip, styles.ingredientChipDetected]}>
+                  <Text style={styles.ingredientTxt}>{ing}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Count */}
         <Text style={styles.sectionTitle}>
-          <Text style={styles.sectionCount}>3</Text> recettes trouvées
+          <Text style={styles.sectionCount}>{recipes.length}</Text> recettes trouvées
         </Text>
 
         {/* Recipe cards */}
-        {RECIPES.map((recipe, i) => (
-          <RecipeCard key={recipe.id} recipe={recipe} index={i} />
+        {recipes.map((recipe, i) => (
+          <RecipeCard key={`${recipe.name}-${i}`} recipe={recipe} index={i} />
         ))}
 
-        {/* Bottom retake */}
+        {/* Bottom CTA */}
         <TouchableOpacity style={styles.bottomRetakeBtn} onPress={handleRetake} activeOpacity={0.85}>
           <Text style={styles.bottomRetakeTxt}>📸  Analyser un autre frigo</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
-}
-
-// Small animated dot for loading steps
-function LoadingDot({ delay }: { delay: number }) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 500, delay, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.3, duration: 500, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-
-  return <Animated.View style={[styles.loadingDot, { opacity }]} />;
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -363,11 +415,11 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     lineHeight: 19,
   },
-  stepsList: {
+  stepsListLoader: {
     alignSelf: 'stretch',
     gap: 12,
   },
-  stepRow: {
+  stepRowLoader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -388,7 +440,52 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // ── Results ──────────────────────────────────────────────────────────────────
+  // ── Error ─────────────────────────────────────────────────────────────────────
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 28,
+    backgroundColor: COLORS.offWhite,
+  },
+  errorIcon: {
+    fontSize: 52,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  errorBox: {
+    backgroundColor: COLORS.errorBg,
+    borderWidth: 1,
+    borderColor: COLORS.errorBorder,
+    borderRadius: 12,
+    padding: 16,
+    alignSelf: 'stretch',
+    marginBottom: 24,
+  },
+  errorMsg: {
+    fontSize: 13,
+    color: COLORS.errorText,
+    lineHeight: 20,
+  },
+  retryBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.green,
+  },
+  retryBtnTxt: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // ── Results ───────────────────────────────────────────────────────────────────
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.green,
@@ -447,11 +544,11 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Source preview card
+  // Source card
   sourceCard: {
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -492,6 +589,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textDark,
     lineHeight: 20,
+  },
+
+  // Detected ingredients
+  detectedBox: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  detectedTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.greenMid,
+    marginBottom: 10,
   },
 
   // Section title
@@ -592,11 +705,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
+  ingredientChipDetected: {
+    backgroundColor: COLORS.greenPale,
+    borderColor: COLORS.greenLight,
+  },
   ingredientTxt: {
     fontSize: 12,
     color: COLORS.textDark,
     fontWeight: '500',
   },
+
+  // Steps
+  stepsList: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  stepNumberTxt: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  stepInstruction: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.textDark,
+    lineHeight: 20,
+  },
+
+  // CTA
   recipeBtn: {
     backgroundColor: COLORS.green,
     borderRadius: 12,
