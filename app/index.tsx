@@ -102,8 +102,9 @@ export default function HomeScreen({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
+                const uri = capturedPhoto.uri;
                 closeCamera();
-                navigation.navigate('Analyse', { photoUri: capturedPhoto.uri });
+                navigation.navigate('Analyse', { photoUri: uri });
               }}
               style={styles.capturePrimaryBtn}
             >
