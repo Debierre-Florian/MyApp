@@ -33,6 +33,7 @@ const COLORS = {
   textDark: '#1A1A1A',
   textMuted: '#6B7F6B',
   overlay: 'rgba(0,0,0,0.55)',
+  cardBorder: '#E8F0E8',
 };
 
 export default function HomeScreen({ navigation }: Props) {
@@ -191,6 +192,17 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <Text style={styles.secondaryBtnEmoji}>✏️</Text>
           <Text style={styles.secondaryBtnTxt}>Saisir les ingrédients manuellement</Text>
+        </TouchableOpacity>
+
+        {/* Frigo CTA */}
+        <TouchableOpacity
+          style={styles.frigoBtn}
+          onPress={() => navigation.navigate('Frigo')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.frigoBtnEmoji}>🧊</Text>
+          <Text style={styles.frigoBtnTxt}>Voir le contenu de mon frigo</Text>
+          <Text style={styles.frigoBtnArrow}>›</Text>
         </TouchableOpacity>
 
         {/* Info tiles */}
@@ -403,6 +415,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textMuted,
     fontWeight: '500',
+  },
+
+  // ── Frigo button ─────────────────────────────────────────────────────────────
+  frigoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.cardBorder,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  frigoBtnEmoji: {
+    fontSize: 22,
+  },
+  frigoBtnTxt: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textDark,
+  },
+  frigoBtnArrow: {
+    fontSize: 22,
+    color: COLORS.textMuted,
+    fontWeight: '300',
   },
 
   // ── Secondary button ────────────────────────────────────────────────────────

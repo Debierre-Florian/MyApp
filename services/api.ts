@@ -80,9 +80,67 @@ function parseClaudeResponse(text: string): AnalyseResult {
   return parsed;
 }
 
+// ─── Mock data ────────────────────────────────────────────────────────────────
+
+const MOCK_RESULT: AnalyseResult = {
+  detectedIngredients: ['tomates', 'pâtes', 'œuf', 'fromage', 'basilic'],
+  recipes: [
+    {
+      name: 'Spaghetti à la carbonara express',
+      time: '20 min',
+      difficulty: 'Facile',
+      emoji: '🍝',
+      description: 'Un classique italien crémeux préparé en un clin d\'œil avec les ingrédients du frigo.',
+      ingredients: ['pâtes', 'œuf', 'fromage', 'basilic'],
+      steps: [
+        { step: 1, instruction: 'Faire cuire les pâtes dans une grande casserole d\'eau bouillante salée selon les indications du paquet.' },
+        { step: 2, instruction: 'Dans un bol, battre les œufs avec le fromage râpé et une pincée de poivre.' },
+        { step: 3, instruction: 'Égoutter les pâtes en réservant une louche d\'eau de cuisson.' },
+        { step: 4, instruction: 'Hors du feu, mélanger les pâtes avec le mélange œuf-fromage en ajoutant un peu d\'eau de cuisson pour une sauce crémeuse.' },
+        { step: 5, instruction: 'Servir aussitôt, garni de basilic frais et d\'un tour de moulin à poivre.' },
+      ],
+    },
+    {
+      name: 'Bruschetta aux tomates et basilic',
+      time: '15 min',
+      difficulty: 'Très facile',
+      emoji: '🍅',
+      description: 'Une entrée fraîche et colorée qui met en valeur la douceur des tomates mûres.',
+      ingredients: ['tomates', 'basilic', 'fromage'],
+      steps: [
+        { step: 1, instruction: 'Couper les tomates en petits dés et les déposer dans un saladier.' },
+        { step: 2, instruction: 'Ajouter le basilic ciselé, une pincée de sel et un filet d\'huile d\'olive.' },
+        { step: 3, instruction: 'Faire griller des tranches de pain au four ou à la poêle jusqu\'à ce qu\'elles soient dorées.' },
+        { step: 4, instruction: 'Répartir la préparation aux tomates sur le pain grillé.' },
+        { step: 5, instruction: 'Parsemer de fromage râpé ou en copeaux et servir immédiatement.' },
+      ],
+    },
+    {
+      name: 'Frittata tomates-fromage',
+      time: '25 min',
+      difficulty: 'Facile',
+      emoji: '🍳',
+      description: 'Une omelette italienne épaisse et dorée, parfaite pour un dîner rapide et nourrissant.',
+      ingredients: ['œuf', 'tomates', 'fromage', 'basilic'],
+      steps: [
+        { step: 1, instruction: 'Préchauffer le four à 180 °C. Couper les tomates en rondelles.' },
+        { step: 2, instruction: 'Battre les œufs dans un bol avec du sel, du poivre et la moitié du fromage râpé.' },
+        { step: 3, instruction: 'Faire chauffer une poêle allant au four avec un filet d\'huile d\'olive à feu moyen.' },
+        { step: 4, instruction: 'Verser les œufs battus et disposer les rondelles de tomates par-dessus.' },
+        { step: 5, instruction: 'Parsemer du reste de fromage, puis enfourner 10 minutes jusqu\'à ce que la frittata soit prise et légèrement dorée. Garnir de basilic avant de servir.' },
+      ],
+    },
+  ],
+};
+
+// ─── API call ─────────────────────────────────────────────────────────────────
+
+const isMockMode = !API_KEY || API_KEY === 'your_anthropic_api_key_here';
+
 async function callClaude(messages: object[]): Promise<string> {
-  if (!API_KEY || API_KEY === 'your_anthropic_api_key_here') {
-    throw new Error('Clé API Anthropic manquante. Vérifie EXPO_PUBLIC_ANTHROPIC_API_KEY dans .env');
+  if (isMockMode) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return JSON.stringify(MOCK_RESULT);
   }
 
   const response = await fetch(ANTHROPIC_API_URL, {

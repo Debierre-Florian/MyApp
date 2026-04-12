@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
 import { analysePhoto, type Recipe } from '../services/api';
+import { useFrigo } from '../hooks/useFrigo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Analyse'>;
 
@@ -178,6 +179,8 @@ export default function AnalyseScreen({ route, navigation }: Props) {
   const [detectedIngredients, setDetectedIngredients] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const { addIngredients } = useFrigo();
+
   useEffect(() => {
     let cancelled = false;
 
@@ -188,6 +191,10 @@ export default function AnalyseScreen({ route, navigation }: Props) {
         setRecipes(result.recipes);
         setDetectedIngredients(result.detectedIngredients);
         setPhase('results');
+        // Persist detected ingredients to the frigo
+        if (result.detectedIngredients.length > 0) {
+          addIngredients(result.detectedIngredients);
+        }
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue.';
