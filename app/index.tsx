@@ -15,6 +15,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { CameraView } from 'expo-camera';
 import { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
 import { RootStackParamList } from './navigator';
@@ -42,6 +43,16 @@ export default function HomeScreen({ navigation }: Props) {
 
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [ingredientText, setIngredientText] = useState('');
+
+  const handlePickFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      navigation.navigate('Analyse', { photoUri: result.assets[0].uri });
+    }
+  };
 
   const handleManualSubmit = () => {
     if (!ingredientText.trim()) return;
@@ -182,6 +193,16 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.primaryBtnSub}>Analyse automatique des ingrédients</Text>
           </View>
           <Text style={styles.primaryBtnArrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* Gallery CTA */}
+        <TouchableOpacity
+          style={styles.galleryBtn}
+          onPress={handlePickFromGallery}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.galleryBtnEmoji}>🖼️</Text>
+          <Text style={styles.galleryBtnTxt}>Choisir une photo</Text>
         </TouchableOpacity>
 
         {/* Divider */}
@@ -440,6 +461,29 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: COLORS.greenLight,
     fontWeight: '300',
+  },
+
+  // ── Gallery button ──────────────────────────────────────────────────────────
+  galleryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.greenLight,
+    gap: 8,
+  },
+  galleryBtnEmoji: {
+    fontSize: 18,
+  },
+  galleryBtnTxt: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.greenMid,
   },
 
   // ── Divider ─────────────────────────────────────────────────────────────────
