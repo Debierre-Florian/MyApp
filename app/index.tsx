@@ -91,9 +91,17 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* Shutter */}
         <SafeAreaView style={styles.shutterBar}>
-          <TouchableOpacity onPress={takePicture} style={styles.shutterBtn}>
-            <View style={styles.shutterInner} />
-          </TouchableOpacity>
+          <View style={styles.shutterRow}>
+            <View style={styles.shutterSide} />
+            <TouchableOpacity onPress={takePicture} style={styles.shutterBtn}>
+              <View style={styles.shutterInner} />
+            </TouchableOpacity>
+            <View style={styles.shutterSide}>
+              <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryCircleBtn}>
+                <Text style={styles.galleryCircleIcon}>🖼️</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </SafeAreaView>
       </View>
     );
@@ -674,9 +682,31 @@ const styles = StyleSheet.create({
 
   // Shutter
   shutterBar: {
-    alignItems: 'center',
     paddingBottom: 36,
     zIndex: 10,
+  },
+  shutterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  shutterSide: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  galleryCircleBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  galleryCircleIcon: {
+    fontSize: 22,
   },
   shutterBtn: {
     width: 74,
