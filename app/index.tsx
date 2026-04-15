@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView } from 'expo-camera';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import { useFrigo } from '../hooks/useFrigo';
+import { initNotifications } from '../services/notifications';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
 import { RootStackParamList } from './navigator';
@@ -40,6 +42,11 @@ const COLORS = {
 export default function HomeScreen({ navigation }: Props) {
   const { cameraRef, permission, cameraState, capturedPhoto, openCamera, closeCamera, takePicture, retake } =
     useCamera();
+  const { checkExpiringIngredients } = useFrigo();
+
+  useEffect(() => {
+    initNotifications(checkExpiringIngredients());
+  }, [checkExpiringIngredients]);
 
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [ingredientText, setIngredientText] = useState('');

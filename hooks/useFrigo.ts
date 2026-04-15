@@ -115,5 +115,13 @@ export function useFrigo() {
     [persist]
   );
 
-  return { ingredients, loading, reload, addIngredient, addIngredients, removeIngredient };
+  /**
+   * Returns ingredients added more than 7 days ago.
+   */
+  const checkExpiringIngredients = useCallback((): FrigoIngredient[] => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return ingredients.filter((i) => new Date(i.addedAt).getTime() < cutoff);
+  }, [ingredients]);
+
+  return { ingredients, loading, reload, addIngredient, addIngredients, removeIngredient, checkExpiringIngredients };
 }
