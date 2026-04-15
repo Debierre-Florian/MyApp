@@ -7,9 +7,11 @@ import RecetteScreen from './recette';
 import PreferencesScreen from './preferences';
 import ProfilScreen from './profil';
 import TicketScreen from './ticket';
+import OnboardingScreen from './onboarding';
 import { Recipe } from '../services/api';
 
 export type RootStackParamList = {
+  Onboarding: undefined;
   Home: undefined;
   Analyse: {
     photoUri?: string;
@@ -26,10 +28,11 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function Navigator() {
+export default function Navigator({ initialRoute }: { initialRoute: 'Onboarding' | 'Home' }) {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen
           name="Analyse"
