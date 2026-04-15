@@ -144,6 +144,13 @@ export default function HomeScreen({ navigation }: Props) {
 
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.settingsBtn}
+          onPress={() => navigation.navigate('Preferences')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.settingsBtnTxt}>⚙️</Text>
+        </TouchableOpacity>
         <View style={styles.logoWrapper}>
           <Text style={styles.logoEmoji}>🥦</Text>
         </View>
@@ -202,6 +209,28 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <Text style={styles.frigoBtnEmoji}>🧊</Text>
           <Text style={styles.frigoBtnTxt}>Voir le contenu de mon frigo</Text>
+          <Text style={styles.frigoBtnArrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* Profil CTA */}
+        <TouchableOpacity
+          style={styles.frigoBtn}
+          onPress={() => navigation.navigate('Profil')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.frigoBtnEmoji}>👤</Text>
+          <Text style={styles.frigoBtnTxt}>Mon profil</Text>
+          <Text style={styles.frigoBtnArrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* Ticket CTA */}
+        <TouchableOpacity
+          style={styles.frigoBtn}
+          onPress={() => navigation.navigate('Ticket')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.frigoBtnEmoji}>🧾</Text>
+          <Text style={styles.frigoBtnTxt}>Scanner un ticket de caisse</Text>
           <Text style={styles.frigoBtnArrow}>›</Text>
         </TouchableOpacity>
 
@@ -298,6 +327,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 24,
     paddingBottom: 28,
+    position: 'relative',
+  },
+  settingsBtn: {
+    position: 'absolute',
+    top: 20,
+    right: 16,
+    zIndex: 1,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsBtnTxt: {
+    fontSize: 22,
   },
   logoWrapper: {
     width: 72,

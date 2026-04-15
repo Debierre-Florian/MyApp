@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import { UserPreferences } from '../hooks/usePreferences';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,11 +29,35 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-opus-4-6';
 const API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
 
-const SYSTEM_PROMPT = `Tu es un assistant culinaire expert. Tu analyses les ingrédients disponibles et proposes des recettes adaptées.
+const SYSTEM_PROMPT = `Tu es un assistant culinaire expert. Tu analyses les ingrédients disponibles et proposes des recettes adaptées aux préférences de l'utilisateur.
 Tu réponds TOUJOURS en JSON pur, sans markdown, sans bloc de code, sans texte avant ou après. Uniquement le JSON.`;
 
-const buildUserPrompt = (ingredientText: string) => `
-Voici les ingrédients disponibles : ${ingredientText}
+function buildPreferencesBlock(prefs?: UserPreferences): string {
+  if (!prefs) return '';
+  const lines: string[] = [];
+
+  if (prefs.firstName) {
+    lines.push(`Prénom de l'utilisateur : ${prefs.firstName}.`);
+  }
+  if (prefs.diet && prefs.diet !== 'Omnivore') {
+    lines.push(`Régime alimentaire : ${prefs.diet}. Respecte impérativement ce régime dans toutes les recettes.`);
+  }
+  if (prefs.allergies.length > 0) {
+    lines.push(`Allergies (à exclure absolument) : ${prefs.allergies.join(', ')}.`);
+  }
+  if (prefs.favoriteIngredients.length > 0) {
+    lines.push(`Ingrédients favoris (à privilégier si possible) : ${prefs.favoriteIngredients.join(', ')}.`);
+  }
+  if (prefs.dislikedIngredients.length > 0) {
+    lines.push(`Ingrédients détestés (à éviter) : ${prefs.dislikedIngredients.join(', ')}.`);
+  }
+
+  if (lines.length === 0) return '';
+  return `\n\nPréférences de l'utilisateur :\n${lines.join('\n')}`;
+}
+
+const buildUserPrompt = (ingredientText: string, prefs?: UserPreferences) => `
+Voici les ingrédients disponibles : ${ingredientText}${buildPreferencesBlock(prefs)}
 
 Réponds UNIQUEMENT avec ce JSON (sans markdown) :
 {
@@ -83,51 +108,51 @@ function parseClaudeResponse(text: string): AnalyseResult {
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const MOCK_RESULT: AnalyseResult = {
-  detectedIngredients: ['tomates', 'pâtes', 'œuf', 'fromage', 'basilic'],
+  detectedIngredients: ['tomates', 'pâtes', 'œuf'],
   recipes: [
     {
-      name: 'Spaghetti à la carbonara express',
+      name: 'Spaghetti à la carbonara',
       time: '20 min',
       difficulty: 'Facile',
       emoji: '🍝',
-      description: 'Un classique italien crémeux préparé en un clin d\'œil avec les ingrédients du frigo.',
-      ingredients: ['pâtes', 'œuf', 'fromage', 'basilic'],
+      description: 'Un classique italien crémeux avec une sauce dorée aux lardons et parmesan.',
+      ingredients: ['pâtes', 'œuf', 'lardons', 'parmesan', 'ail', 'poivre noir'],
       steps: [
         { step: 1, instruction: 'Faire cuire les pâtes dans une grande casserole d\'eau bouillante salée selon les indications du paquet.' },
-        { step: 2, instruction: 'Dans un bol, battre les œufs avec le fromage râpé et une pincée de poivre.' },
-        { step: 3, instruction: 'Égoutter les pâtes en réservant une louche d\'eau de cuisson.' },
-        { step: 4, instruction: 'Hors du feu, mélanger les pâtes avec le mélange œuf-fromage en ajoutant un peu d\'eau de cuisson pour une sauce crémeuse.' },
-        { step: 5, instruction: 'Servir aussitôt, garni de basilic frais et d\'un tour de moulin à poivre.' },
+        { step: 2, instruction: 'Faire revenir les lardons avec l\'ail émincé dans une poêle sans matière grasse jusqu\'à ce qu\'ils soient dorés.' },
+        { step: 3, instruction: 'Dans un bol, battre les œufs avec le parmesan râpé et une généreuse pincée de poivre noir.' },
+        { step: 4, instruction: 'Égoutter les pâtes en réservant une louche d\'eau de cuisson.' },
+        { step: 5, instruction: 'Hors du feu, mélanger les pâtes chaudes avec les lardons puis verser le mélange œuf-parmesan en remuant rapidement. Ajouter un peu d\'eau de cuisson pour une sauce crémeuse.' },
       ],
     },
     {
-      name: 'Bruschetta aux tomates et basilic',
-      time: '15 min',
+      name: 'Sauce tomate à la crème',
+      time: '25 min',
       difficulty: 'Très facile',
       emoji: '🍅',
-      description: 'Une entrée fraîche et colorée qui met en valeur la douceur des tomates mûres.',
-      ingredients: ['tomates', 'basilic', 'fromage'],
+      description: 'Des pâtes nappées d\'une sauce tomate onctueuse relevée à la crème fraîche et aux herbes.',
+      ingredients: ['pâtes', 'tomates', 'crème fraîche', 'ail', 'huile d\'olive', 'basilic'],
       steps: [
-        { step: 1, instruction: 'Couper les tomates en petits dés et les déposer dans un saladier.' },
-        { step: 2, instruction: 'Ajouter le basilic ciselé, une pincée de sel et un filet d\'huile d\'olive.' },
-        { step: 3, instruction: 'Faire griller des tranches de pain au four ou à la poêle jusqu\'à ce qu\'elles soient dorées.' },
-        { step: 4, instruction: 'Répartir la préparation aux tomates sur le pain grillé.' },
-        { step: 5, instruction: 'Parsemer de fromage râpé ou en copeaux et servir immédiatement.' },
+        { step: 1, instruction: 'Faire revenir l\'ail émincé dans un filet d\'huile d\'olive à feu moyen pendant 1 minute.' },
+        { step: 2, instruction: 'Ajouter les tomates coupées en dés, saler, poivrer et laisser mijoter 10 minutes à feu doux.' },
+        { step: 3, instruction: 'Incorporer la crème fraîche et laisser réduire 3 minutes en remuant.' },
+        { step: 4, instruction: 'Faire cuire les pâtes al dente dans une grande casserole d\'eau salée.' },
+        { step: 5, instruction: 'Égoutter les pâtes, les mélanger à la sauce et garnir de basilic frais avant de servir.' },
       ],
     },
     {
-      name: 'Frittata tomates-fromage',
-      time: '25 min',
+      name: 'Frittata aux tomates et mozzarella',
+      time: '20 min',
       difficulty: 'Facile',
       emoji: '🍳',
-      description: 'Une omelette italienne épaisse et dorée, parfaite pour un dîner rapide et nourrissant.',
-      ingredients: ['œuf', 'tomates', 'fromage', 'basilic'],
+      description: 'Une omelette italienne épaisse et dorée, fondante avec la mozzarella et parfumée au basilic.',
+      ingredients: ['œuf', 'tomates', 'mozzarella', 'basilic', 'huile d\'olive', 'sel', 'poivre'],
       steps: [
-        { step: 1, instruction: 'Préchauffer le four à 180 °C. Couper les tomates en rondelles.' },
-        { step: 2, instruction: 'Battre les œufs dans un bol avec du sel, du poivre et la moitié du fromage râpé.' },
-        { step: 3, instruction: 'Faire chauffer une poêle allant au four avec un filet d\'huile d\'olive à feu moyen.' },
-        { step: 4, instruction: 'Verser les œufs battus et disposer les rondelles de tomates par-dessus.' },
-        { step: 5, instruction: 'Parsemer du reste de fromage, puis enfourner 10 minutes jusqu\'à ce que la frittata soit prise et légèrement dorée. Garnir de basilic avant de servir.' },
+        { step: 1, instruction: 'Préchauffer le four à 180 °C. Couper les tomates en rondelles et la mozzarella en tranches.' },
+        { step: 2, instruction: 'Battre les œufs dans un bol avec du sel et du poivre.' },
+        { step: 3, instruction: 'Faire chauffer un filet d\'huile d\'olive dans une poêle allant au four à feu moyen.' },
+        { step: 4, instruction: 'Verser les œufs battus et disposer les rondelles de tomates et les tranches de mozzarella par-dessus.' },
+        { step: 5, instruction: 'Enfourner 10 minutes jusqu\'à ce que la frittata soit prise et dorée. Garnir de basilic frais et servir aussitôt.' },
       ],
     },
   ],
@@ -175,7 +200,46 @@ async function callClaude(messages: object[]): Promise<string> {
   return textBlock.text;
 }
 
+// ─── Mock ticket data ─────────────────────────────────────────────────────────
+
+const MOCK_TICKET_PRODUCTS = ['lait', 'beurre', 'carottes', 'pommes', 'yaourt', 'poulet', 'riz'];
+
 // ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Scanne un ticket de caisse via une photo et retourne la liste des produits détectés.
+ */
+export async function scanTicket(_photoUri: string): Promise<string[]> {
+  if (isMockMode) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return MOCK_TICKET_PRODUCTS;
+  }
+
+  const base64 = await toBase64(_photoUri);
+  const mediaType = _photoUri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+  const messages = [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: { type: 'base64', media_type: mediaType, data: base64 },
+        },
+        {
+          type: 'text',
+          text: `Voici la photo d'un ticket de caisse. Liste uniquement les noms des produits alimentaires détectés sur ce ticket, en minuscules, sans quantité ni marque. Réponds UNIQUEMENT avec ce JSON (sans markdown) : {"products": ["produit1", "produit2"]}`,
+        },
+      ],
+    },
+  ];
+
+  const rawText = await callClaude(messages);
+  const clean = rawText.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+  const parsed = JSON.parse(clean) as { products: string[] };
+  if (!Array.isArray(parsed.products)) throw new Error('Réponse inattendue du serveur.');
+  return parsed.products;
+}
 
 /**
  * Analyse un frigo via une photo ou un texte d'ingrédients.
@@ -184,8 +248,9 @@ async function callClaude(messages: object[]): Promise<string> {
 export async function analysePhoto(params: {
   photoUri?: string;
   ingredientText?: string;
+  preferences?: UserPreferences;
 }): Promise<AnalyseResult> {
-  const { photoUri, ingredientText } = params;
+  const { photoUri, ingredientText, preferences } = params;
 
   let messages: object[];
 
@@ -208,7 +273,7 @@ export async function analysePhoto(params: {
           },
           {
             type: 'text',
-            text: buildUserPrompt('tous les ingrédients visibles sur cette photo de frigo'),
+            text: buildUserPrompt('tous les ingrédients visibles sur cette photo de frigo', preferences),
           },
         ],
       },
@@ -218,7 +283,7 @@ export async function analysePhoto(params: {
     messages = [
       {
         role: 'user',
-        content: buildUserPrompt(ingredientText.trim()),
+        content: buildUserPrompt(ingredientText.trim(), preferences),
       },
     ];
   } else {
