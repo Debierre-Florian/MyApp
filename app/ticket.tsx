@@ -199,7 +199,7 @@ export default function TicketScreen({ navigation }: Props) {
 
             <TouchableOpacity
               style={styles.primaryBtn}
-              onPress={() => navigation.navigate('Frigo')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'Frigo' })}
               activeOpacity={0.85}
             >
               <Text style={styles.primaryBtnTxt}>Voir mon frigo</Text>
@@ -207,7 +207,7 @@ export default function TicketScreen({ navigation }: Props) {
 
             <TouchableOpacity
               style={styles.secondaryBtn}
-              onPress={() => navigation.navigate('Home')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
               activeOpacity={0.85}
             >
               <Text style={styles.secondaryBtnTxt}>Retour à l'accueil</Text>
@@ -228,7 +228,7 @@ export default function TicketScreen({ navigation }: Props) {
         <TouchableOpacity style={styles.primaryBtn} onPress={openCamera}>
           <Text style={styles.primaryBtnTxt}>Réessayer</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
           <Text style={styles.secondaryBtnTxt}>Retour à l'accueil</Text>
         </TouchableOpacity>
       </SafeAreaView>

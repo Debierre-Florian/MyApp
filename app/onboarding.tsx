@@ -62,7 +62,7 @@ export default function OnboardingScreen() {
 
   const handleStart = async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-    navigation.replace('Home');
+    navigation.replace('MainTabs');
   };
 
   const renderItem = ({ item, index }: ListRenderItemInfo<Slide>) => (

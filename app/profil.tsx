@@ -10,12 +10,17 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from './navigator';
+import { RootStackParamList, TabParamList } from './navigator';
 import { usePreferences } from '../hooks/usePreferences';
 import { useFrigo } from '../hooks/useFrigo';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Profil'>;
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<TabParamList, 'Profil'>,
+  NativeStackScreenProps<RootStackParamList>
+>;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const COLORS = {

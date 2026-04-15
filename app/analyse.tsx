@@ -13,9 +13,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { analysePhoto, type Recipe } from '../services/api';
 import { useFrigo } from '../hooks/useFrigo';
 import { usePreferences } from '../hooks/usePreferences';
+import { RECIPES_HISTORY_KEY } from './recettes';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Analyse'>;
 
@@ -183,6 +185,13 @@ export default function AnalyseScreen({ route, navigation }: Props) {
         // Persist detected ingredients to the frigo
         if (result.detectedIngredients.length > 0) {
           addIngredients(result.detectedIngredients);
+        }
+        // Save recipes to history
+        if (result.recipes.length > 0) {
+          const raw = await AsyncStorage.getItem(RECIPES_HISTORY_KEY);
+          const existing: Recipe[] = raw ? JSON.parse(raw) : [];
+          const merged = [...result.recipes, ...existing].slice(0, 50);
+          await AsyncStorage.setItem(RECIPES_HISTORY_KEY, JSON.stringify(merged));
         }
       } catch (err) {
         if (cancelled) return;
