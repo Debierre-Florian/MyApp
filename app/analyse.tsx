@@ -15,6 +15,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
 import { analysePhoto, type Recipe } from '../services/api';
 import { useFrigo } from '../hooks/useFrigo';
+import { usePreferences } from '../hooks/usePreferences';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Analyse'>;
 
@@ -84,10 +85,17 @@ function LoadingDot({ delay }: { delay: number }) {
 }
 
 // ─── Recipe card ──────────────────────────────────────────────────────────────
-function RecipeCard({ recipe, index }: { recipe: Recipe; index: number }) {
+function RecipeCard({
+  recipe,
+  index,
+  onPress,
+}: {
+  recipe: Recipe;
+  index: number;
+  onPress: () => void;
+}) {
   const slideAnim = useRef(new Animated.Value(40)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -141,29 +149,9 @@ function RecipeCard({ recipe, index }: { recipe: Recipe; index: number }) {
         ))}
       </View>
 
-      {/* Steps — toggled */}
-      {expanded && (
-        <View style={styles.stepsList}>
-          {recipe.steps.map((s) => (
-            <View key={s.step} style={styles.stepRow}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberTxt}>{s.step}</Text>
-              </View>
-              <Text style={styles.stepInstruction}>{s.instruction}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Toggle CTA */}
-      <TouchableOpacity
-        style={styles.recipeBtn}
-        activeOpacity={0.8}
-        onPress={() => setExpanded((v) => !v)}
-      >
-        <Text style={styles.recipeBtnTxt}>
-          {expanded ? 'Masquer les étapes ↑' : 'Voir les étapes ↓'}
-        </Text>
+      {/* CTA */}
+      <TouchableOpacity style={styles.recipeBtn} activeOpacity={0.8} onPress={onPress}>
+        <Text style={styles.recipeBtnTxt}>Voir la recette →</Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -180,13 +168,14 @@ export default function AnalyseScreen({ route, navigation }: Props) {
   const [errorMessage, setErrorMessage] = useState('');
 
   const { addIngredients } = useFrigo();
+  const { preferences } = usePreferences();
 
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
       try {
-        const result = await analysePhoto({ photoUri, ingredientText });
+        const result = await analysePhoto({ photoUri, ingredientText, preferences });
         if (cancelled) return;
         setRecipes(result.recipes);
         setDetectedIngredients(result.detectedIngredients);
@@ -339,7 +328,12 @@ export default function AnalyseScreen({ route, navigation }: Props) {
 
         {/* Recipe cards */}
         {recipes.map((recipe, i) => (
-          <RecipeCard key={`${recipe.name}-${i}`} recipe={recipe} index={i} />
+          <RecipeCard
+            key={`${recipe.name}-${i}`}
+            recipe={recipe}
+            index={i}
+            onPress={() => navigation.navigate('RecetteDetail', { recipe })}
+          />
         ))}
 
         {/* Bottom CTA */}

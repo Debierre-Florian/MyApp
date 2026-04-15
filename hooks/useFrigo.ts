@@ -19,22 +19,21 @@ export function useFrigo() {
   const [ingredients, setIngredients] = useState<FrigoIngredient[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const reload = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      setIngredients(raw ? (JSON.parse(raw) as FrigoIngredient[]) : []);
+    } catch {
+      // silently ignore storage errors
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Load from AsyncStorage on mount
   useEffect(() => {
-    async function load() {
-      try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          setIngredients(JSON.parse(raw) as FrigoIngredient[]);
-        }
-      } catch {
-        // silently ignore storage errors
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+    reload();
+  }, [reload]);
 
   // Persist to AsyncStorage whenever list changes (skip initial empty load)
   const persist = useCallback(async (list: FrigoIngredient[]) => {
@@ -116,5 +115,5 @@ export function useFrigo() {
     [persist]
   );
 
-  return { ingredients, loading, addIngredient, addIngredients, removeIngredient };
+  return { ingredients, loading, reload, addIngredient, addIngredients, removeIngredient };
 }
