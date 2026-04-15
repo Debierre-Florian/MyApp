@@ -9,10 +9,10 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from './navigator';
+import { HomeStackParamList } from './navigator';
 import { useFrigo } from '../hooks/useFrigo';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'RecetteDetail'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'RecetteDetail'>;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const COLORS = {

@@ -11,12 +11,12 @@ import { StatusBar } from 'expo-status-bar';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList, TabParamList } from './navigator';
+import { HomeStackParamList, TabParamList } from './navigator';
 import { useFrigo, type FrigoIngredient } from '../hooks/useFrigo';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Frigo'>,
-  NativeStackScreenProps<RootStackParamList>
+  NativeStackScreenProps<HomeStackParamList>
 >;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────

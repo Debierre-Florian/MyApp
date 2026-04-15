@@ -12,7 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from './navigator';
+import { HomeStackParamList } from './navigator';
 import {
   usePreferences,
   DIET_OPTIONS,
@@ -28,7 +28,7 @@ import {
   cancelDailyNotification,
 } from '../services/notifications';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Preferences'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'Preferences'>;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const COLORS = {

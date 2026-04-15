@@ -12,14 +12,14 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from './navigator';
+import { HomeStackParamList } from './navigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { analysePhoto, type Recipe } from '../services/api';
 import { useFrigo } from '../hooks/useFrigo';
 import { usePreferences } from '../hooks/usePreferences';
 import { RECIPES_HISTORY_KEY } from './recettes';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Analyse'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'Analyse'>;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const COLORS = {

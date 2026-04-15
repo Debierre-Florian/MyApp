@@ -22,11 +22,11 @@ import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
-import { RootStackParamList, TabParamList } from './navigator';
+import { HomeStackParamList, TabParamList } from './navigator';
 
 type Props = CompositeScreenProps<
-  BottomTabScreenProps<TabParamList, 'Home'>,
-  NativeStackScreenProps<RootStackParamList>
+  NativeStackScreenProps<HomeStackParamList, 'Home'>,
+  BottomTabScreenProps<TabParamList>
 >;
 
 const { width, height } = Dimensions.get('window');

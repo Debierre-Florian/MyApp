@@ -1,5 +1,4 @@
-import { NavigationContainer } from '@react-navigation/native';
-import { NavigatorScreenParams } from '@react-navigation/native';
+import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,16 +15,9 @@ import { Recipe } from '../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type TabParamList = {
+/** Écrans du stack "accueil" — tab bar cachée quand on y navigue */
+export type HomeStackParamList = {
   Home: undefined;
-  Frigo: undefined;
-  Recettes: undefined;
-  Profil: undefined;
-};
-
-export type RootStackParamList = {
-  Onboarding: undefined;
-  MainTabs: NavigatorScreenParams<TabParamList> | undefined;
   Analyse: {
     photoUri?: string;
     ingredientText?: string;
@@ -33,9 +25,55 @@ export type RootStackParamList = {
   RecetteDetail: {
     recipe: Recipe;
   };
-  Preferences: undefined;
   Ticket: undefined;
+  Preferences: undefined;
 };
+
+/** Onglets de la barre du bas */
+export type TabParamList = {
+  HomeStack: NavigatorScreenParams<HomeStackParamList> | undefined;
+  Frigo: undefined;
+  Recettes: undefined;
+  Profil: undefined;
+};
+
+/** Root stack — uniquement Onboarding + MainTabs */
+export type RootStackParamList = {
+  Onboarding: undefined;
+  MainTabs: NavigatorScreenParams<TabParamList> | undefined;
+};
+
+// ─── Home stack ───────────────────────────────────────────────────────────────
+
+const HomeStack = createNativeStackNavigator<HomeStackParamList>();
+
+function HomeStackNavigator() {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStack.Screen name="Home" component={HomeScreen} />
+      <HomeStack.Screen
+        name="Analyse"
+        component={AnalyseScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <HomeStack.Screen
+        name="RecetteDetail"
+        component={RecetteScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStack.Screen
+        name="Ticket"
+        component={TicketScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStack.Screen
+        name="Preferences"
+        component={PreferencesScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </HomeStack.Navigator>
+  );
+}
 
 // ─── Tab navigator ────────────────────────────────────────────────────────────
 
@@ -67,7 +105,7 @@ function MainTabs() {
         tabBarIcon: ({ color, size, focused }) => {
           let iconName: React.ComponentProps<typeof Ionicons>['name'];
 
-          if (route.name === 'Home') {
+          if (route.name === 'HomeStack') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Frigo') {
             iconName = focused ? 'cube' : 'cube-outline';
@@ -81,45 +119,41 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Accueil' }} />
-      <Tab.Screen name="Frigo" component={FrigoScreen} options={{ tabBarLabel: 'Frigo' }} />
-      <Tab.Screen name="Recettes" component={RecettesScreen} options={{ tabBarLabel: 'Recettes' }} />
-      <Tab.Screen name="Profil" component={ProfilScreen} options={{ tabBarLabel: 'Profil' }} />
+      <Tab.Screen
+        name="HomeStack"
+        component={HomeStackNavigator}
+        options={{ tabBarLabel: 'Accueil' }}
+      />
+      <Tab.Screen
+        name="Frigo"
+        component={FrigoScreen}
+        options={{ tabBarLabel: 'Frigo' }}
+      />
+      <Tab.Screen
+        name="Recettes"
+        component={RecettesScreen}
+        options={{ tabBarLabel: 'Recettes' }}
+      />
+      <Tab.Screen
+        name="Profil"
+        component={ProfilScreen}
+        options={{ tabBarLabel: 'Profil' }}
+      />
     </Tab.Navigator>
   );
 }
 
 // ─── Root stack ───────────────────────────────────────────────────────────────
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 export default function Navigator({ initialRoute }: { initialRoute: 'Onboarding' | 'MainTabs' }) {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="MainTabs" component={MainTabs} />
-        <Stack.Screen
-          name="Analyse"
-          component={AnalyseScreen}
-          options={{ animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="RecetteDetail"
-          component={RecetteScreen}
-          options={{ animation: 'slide_from_right' }}
-        />
-        <Stack.Screen
-          name="Preferences"
-          component={PreferencesScreen}
-          options={{ animation: 'slide_from_right' }}
-        />
-        <Stack.Screen
-          name="Ticket"
-          component={TicketScreen}
-          options={{ animation: 'slide_from_right' }}
-        />
-      </Stack.Navigator>
+      <RootStack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+        <RootStack.Screen name="Onboarding" component={OnboardingScreen} />
+        <RootStack.Screen name="MainTabs" component={MainTabs} />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }

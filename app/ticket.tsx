@@ -19,9 +19,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
 import { useFrigo } from '../hooks/useFrigo';
 import { scanTicket } from '../services/api';
-import { RootStackParamList } from './navigator';
+import { HomeStackParamList } from './navigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Ticket'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'Ticket'>;
 
 const COLORS = {
   green: '#1B5E20',
@@ -199,7 +199,7 @@ export default function TicketScreen({ navigation }: Props) {
 
             <TouchableOpacity
               style={styles.primaryBtn}
-              onPress={() => navigation.navigate('MainTabs', { screen: 'Frigo' })}
+              onPress={() => navigation.navigate('Frigo')}
               activeOpacity={0.85}
             >
               <Text style={styles.primaryBtnTxt}>Voir mon frigo</Text>
@@ -207,7 +207,7 @@ export default function TicketScreen({ navigation }: Props) {
 
             <TouchableOpacity
               style={styles.secondaryBtn}
-              onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
+              onPress={() => navigation.navigate('Home')}
               activeOpacity={0.85}
             >
               <Text style={styles.secondaryBtnTxt}>Retour à l'accueil</Text>
@@ -228,7 +228,7 @@ export default function TicketScreen({ navigation }: Props) {
         <TouchableOpacity style={styles.primaryBtn} onPress={openCamera}>
           <Text style={styles.primaryBtnTxt}>Réessayer</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Home')}>
           <Text style={styles.secondaryBtnTxt}>Retour à l'accueil</Text>
         </TouchableOpacity>
       </SafeAreaView>

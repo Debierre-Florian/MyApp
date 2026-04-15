@@ -13,14 +13,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList, TabParamList } from './navigator';
+import { HomeStackParamList, TabParamList } from './navigator';
 import { Recipe } from '../services/api';
 
 export const RECIPES_HISTORY_KEY = '@recipes_history';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Recettes'>,
-  NativeStackScreenProps<RootStackParamList>
+  NativeStackScreenProps<HomeStackParamList>
 >;
 
 const COLORS = {
