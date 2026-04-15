@@ -7,10 +7,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView } from 'expo-camera';
 import { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
 import { useFrigo } from '../hooks/useFrigo';
@@ -36,16 +40,12 @@ const COLORS = {
 export default function TicketScreen({ navigation }: Props) {
   const { cameraRef, permission, cameraState, capturedPhoto, openCamera, closeCamera, takePicture, retake } =
     useCamera();
-  const { addIngredients } = useFrigo();
+  const { addIngredient, addIngredients } = useFrigo();
 
   const [scanning, setScanning] = useState(false);
   const [addedProducts, setAddedProducts] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Start camera on mount if no photo yet
-  const handleStart = () => {
-    openCamera();
-  };
+  const [manualInput, setManualInput] = useState('');
 
   const handleScan = async (uri: string) => {
     closeCamera();
@@ -60,6 +60,24 @@ export default function TicketScreen({ navigation }: Props) {
     } finally {
       setScanning(false);
     }
+  };
+
+  const handlePickFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      await handleScan(result.assets[0].uri);
+    }
+  };
+
+  const handleAddManual = async () => {
+    const trimmed = manualInput.trim();
+    if (!trimmed) return;
+    await addIngredient(trimmed);
+    setAddedProducts((prev) => (prev ? [...prev, trimmed] : [trimmed]));
+    setManualInput('');
   };
 
   // ─── Camera active ──────────────────────────────────────────────────────────
@@ -80,6 +98,9 @@ export default function TicketScreen({ navigation }: Props) {
         <SafeAreaView style={styles.shutterBar}>
           <TouchableOpacity onPress={takePicture} style={styles.shutterBtn}>
             <View style={styles.shutterInner} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryBtn}>
+            <Text style={styles.galleryBtnTxt}>🖼️ Choisir une photo</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </View>
@@ -134,35 +155,65 @@ export default function TicketScreen({ navigation }: Props) {
           <Text style={styles.headerTitle}>Ticket scanné !</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.body}>
-          <View style={styles.successBadge}>
-            <Text style={styles.successEmoji}>🧾</Text>
-            <Text style={styles.successTitle}>{addedProducts.length} produit{addedProducts.length > 1 ? 's' : ''} ajouté{addedProducts.length > 1 ? 's' : ''} au frigo</Text>
-          </View>
-
-          {addedProducts.map((product) => (
-            <View key={product} style={styles.productRow}>
-              <Text style={styles.productCheck}>✓</Text>
-              <Text style={styles.productName}>{product}</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView contentContainerStyle={styles.scrollBody} keyboardShouldPersistTaps="handled">
+            <View style={styles.successBadge}>
+              <Text style={styles.successEmoji}>🧾</Text>
+              <Text style={styles.successTitle}>
+                {addedProducts.length} produit{addedProducts.length > 1 ? 's' : ''} ajouté{addedProducts.length > 1 ? 's' : ''} au frigo
+              </Text>
             </View>
-          ))}
 
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('Frigo')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnTxt}>Voir mon frigo</Text>
-          </TouchableOpacity>
+            {addedProducts.map((product, index) => (
+              <View key={`${product}-${index}`} style={styles.productRow}>
+                <Text style={styles.productCheck}>✓</Text>
+                <Text style={styles.productName}>{product}</Text>
+              </View>
+            ))}
 
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => navigation.navigate('Home')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.secondaryBtnTxt}>Retour à l'accueil</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            {/* Manual add section */}
+            <View style={styles.manualSection}>
+              <Text style={styles.manualTitle}>Ajouter un ingrédient manquant</Text>
+              <View style={styles.manualRow}>
+                <TextInput
+                  style={styles.manualInput}
+                  placeholder="Ex: fromage, pain..."
+                  placeholderTextColor={COLORS.textMuted}
+                  value={manualInput}
+                  onChangeText={setManualInput}
+                  returnKeyType="done"
+                  onSubmitEditing={handleAddManual}
+                />
+                <TouchableOpacity
+                  style={[styles.manualAddBtn, !manualInput.trim() && styles.manualAddBtnDisabled]}
+                  onPress={handleAddManual}
+                  disabled={!manualInput.trim()}
+                >
+                  <Text style={styles.manualAddBtnTxt}>Ajouter</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => navigation.navigate('Frigo')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnTxt}>Voir mon frigo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => navigation.navigate('Home')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.secondaryBtnTxt}>Retour à l'accueil</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -174,7 +225,7 @@ export default function TicketScreen({ navigation }: Props) {
         <StatusBar style="light" backgroundColor={COLORS.green} />
         <Text style={styles.errorEmoji}>⚠️</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleStart}>
+        <TouchableOpacity style={styles.primaryBtn} onPress={openCamera}>
           <Text style={styles.primaryBtnTxt}>Réessayer</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Home')}>
@@ -197,7 +248,7 @@ export default function TicketScreen({ navigation }: Props) {
         <View style={{ width: 36 }} />
       </View>
 
-      <View style={styles.body}>
+      <View style={styles.introBody}>
         <View style={styles.introCard}>
           <Text style={styles.introEmoji}>🧾</Text>
           <Text style={styles.introTitle}>Scanner votre ticket de caisse</Text>
@@ -211,14 +262,18 @@ export default function TicketScreen({ navigation }: Props) {
             Autorisez l'accès à la caméra dans les réglages pour utiliser cette fonctionnalité.
           </Text>
         ) : (
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleStart} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={openCamera} activeOpacity={0.85}>
             <Text style={styles.primaryBtnEmoji}>📷</Text>
             <Text style={styles.primaryBtnTxt}>Ouvrir la caméra</Text>
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
-          <Text style={styles.secondaryBtnTxt}>Annuler</Text>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={handlePickFromGallery} activeOpacity={0.85}>
+          <Text style={styles.secondaryBtnTxt}>🖼️  Choisir une photo</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+          <Text style={styles.cancelBtnTxt}>Annuler</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -262,17 +317,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.white,
   },
-  body: {
+  introBody: {
     flex: 1,
     backgroundColor: COLORS.offWhite,
     padding: 20,
+  },
+  scrollBody: {
+    backgroundColor: COLORS.offWhite,
+    padding: 20,
+    paddingBottom: 40,
   },
   introCard: {
     backgroundColor: COLORS.white,
     borderRadius: 20,
     padding: 28,
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
@@ -331,6 +391,15 @@ const styles = StyleSheet.create({
   secondaryBtnTxt: {
     fontSize: 15,
     fontWeight: '600',
+    color: COLORS.textDark,
+  },
+  cancelBtn: {
+    alignItems: 'center',
+    padding: 12,
+  },
+  cancelBtnTxt: {
+    fontSize: 14,
+    fontWeight: '500',
     color: COLORS.textMuted,
   },
   permissionText: {
@@ -362,7 +431,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
@@ -401,6 +470,53 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
 
+  // Manual add
+  manualSection: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  manualTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    marginBottom: 12,
+  },
+  manualRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  manualInput: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: COLORS.greenLight,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.textDark,
+    backgroundColor: COLORS.offWhite,
+  },
+  manualAddBtn: {
+    backgroundColor: COLORS.green,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  manualAddBtnDisabled: {
+    opacity: 0.4,
+  },
+  manualAddBtnTxt: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+
   // Camera
   cameraContainer: {
     flex: 1,
@@ -437,6 +553,7 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
     zIndex: 10,
     marginTop: 'auto',
+    gap: 16,
   },
   shutterBtn: {
     width: 74,
@@ -453,6 +570,19 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: COLORS.white,
+  },
+  galleryBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  galleryBtnTxt: {
+    color: COLORS.white,
+    fontWeight: '600',
+    fontSize: 14,
   },
   captureOverlay: {
     flex: 1,
