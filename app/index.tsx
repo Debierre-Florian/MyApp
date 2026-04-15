@@ -91,18 +91,15 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* Shutter */}
         <SafeAreaView style={styles.shutterBar}>
-          <View style={styles.shutterRow}>
-            <View style={styles.shutterSide} />
-            <TouchableOpacity onPress={takePicture} style={styles.shutterBtn}>
-              <View style={styles.shutterInner} />
-            </TouchableOpacity>
-            <View style={styles.shutterSide}>
-              <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryCircleBtn}>
-                <Text style={styles.galleryCircleIcon}>🖼️</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <TouchableOpacity onPress={takePicture} style={styles.shutterBtn}>
+            <View style={styles.shutterInner} />
+          </TouchableOpacity>
         </SafeAreaView>
+
+        {/* Gallery FAB */}
+        <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryFab}>
+          <Text style={styles.galleryFabIcon}>🖼️</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -201,16 +198,6 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.primaryBtnSub}>Analyse automatique des ingrédients</Text>
           </View>
           <Text style={styles.primaryBtnArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Gallery CTA */}
-        <TouchableOpacity
-          style={styles.galleryBtn}
-          onPress={handlePickFromGallery}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.galleryBtnEmoji}>🖼️</Text>
-          <Text style={styles.galleryBtnTxt}>Choisir une photo</Text>
         </TouchableOpacity>
 
         {/* Divider */}
@@ -471,29 +458,6 @@ const styles = StyleSheet.create({
     fontWeight: '300',
   },
 
-  // ── Gallery button ──────────────────────────────────────────────────────────
-  galleryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingVertical: 13,
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    borderWidth: 1.5,
-    borderColor: COLORS.greenLight,
-    gap: 8,
-  },
-  galleryBtnEmoji: {
-    fontSize: 18,
-  },
-  galleryBtnTxt: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.greenMid,
-  },
-
   // ── Divider ─────────────────────────────────────────────────────────────────
   dividerRow: {
     flexDirection: 'row',
@@ -682,20 +646,14 @@ const styles = StyleSheet.create({
 
   // Shutter
   shutterBar: {
+    alignItems: 'center',
     paddingBottom: 36,
     zIndex: 10,
   },
-  shutterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  shutterSide: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  galleryCircleBtn: {
+  galleryFab: {
+    position: 'absolute',
+    bottom: 52,
+    right: 16,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -704,8 +662,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 20,
   },
-  galleryCircleIcon: {
+  galleryFabIcon: {
     fontSize: 22,
   },
   shutterBtn: {
