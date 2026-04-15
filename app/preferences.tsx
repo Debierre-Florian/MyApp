@@ -7,9 +7,10 @@ import {
   SafeAreaView,
   TextInput,
   Platform,
+  Switch,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
 import {
@@ -19,6 +20,13 @@ import {
   type DietType,
   type AllergyType,
 } from '../hooks/usePreferences';
+import { useFrigo } from '../hooks/useFrigo';
+import {
+  getNotificationsEnabled,
+  setNotificationsEnabled,
+  initNotifications,
+  cancelDailyNotification,
+} from '../services/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Preferences'>;
 
@@ -159,6 +167,23 @@ export default function PreferencesScreen({ navigation }: Props) {
     addDisliked,
     removeDisliked,
   } = usePreferences();
+  const { checkExpiringIngredients } = useFrigo();
+
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
+
+  useEffect(() => {
+    getNotificationsEnabled().then(setNotificationsEnabledState);
+  }, []);
+
+  const handleToggleNotifications = async (value: boolean) => {
+    setNotificationsEnabledState(value);
+    await setNotificationsEnabled(value);
+    if (value) {
+      await initNotifications(checkExpiringIngredients());
+    } else {
+      await cancelDailyNotification();
+    }
+  };
 
   if (loading) return null;
 
@@ -257,6 +282,25 @@ export default function PreferencesScreen({ navigation }: Props) {
             tagColor={COLORS.danger}
             tagBg={COLORS.dangerBg}
           />
+        </View>
+
+        {/* ── Notifications ─────────────────────────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔔  Notifications</Text>
+          <View style={styles.notifRow}>
+            <View style={styles.notifTextBlock}>
+              <Text style={styles.notifLabel}>Rappels d'ingrédients</Text>
+              <Text style={styles.notifHint}>
+                Alerte quotidienne à 18h pour les ingrédients ajoutés depuis plus de 7 jours
+              </Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleToggleNotifications}
+              trackColor={{ false: '#D0D5D0', true: COLORS.greenLight }}
+              thumbColor={COLORS.white}
+            />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -410,6 +454,27 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '300',
     lineHeight: 26,
+  },
+
+  // Notifications
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  notifTextBlock: {
+    flex: 1,
+  },
+  notifLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textDark,
+    marginBottom: 3,
+  },
+  notifHint: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    lineHeight: 17,
   },
 
   // Tags

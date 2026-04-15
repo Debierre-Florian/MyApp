@@ -6,21 +6,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
-  Switch,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
 import { usePreferences } from '../hooks/usePreferences';
 import { useFrigo } from '../hooks/useFrigo';
-import {
-  getNotificationsEnabled,
-  setNotificationsEnabled,
-  initNotifications,
-  cancelDailyNotification,
-} from '../services/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profil'>;
 
@@ -169,7 +162,7 @@ function PlanCard({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function ProfilScreen({ navigation }: Props) {
   const { preferences, reload: reloadPrefs } = usePreferences();
-  const { ingredients, reload: reloadFrigo, checkExpiringIngredients } = useFrigo();
+  const { ingredients, reload: reloadFrigo } = useFrigo();
 
   useFocusEffect(
     useCallback(() => {
@@ -180,23 +173,6 @@ export default function ProfilScreen({ navigation }: Props) {
 
   // Active plan state — "free" par défaut, sans logique de paiement
   const [activePlan, setActivePlan] = useState<PlanId>('free');
-
-  // Notifications toggle
-  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
-
-  useEffect(() => {
-    getNotificationsEnabled().then(setNotificationsEnabledState);
-  }, []);
-
-  const handleToggleNotifications = async (value: boolean) => {
-    setNotificationsEnabledState(value);
-    await setNotificationsEnabled(value);
-    if (value) {
-      await initNotifications(checkExpiringIngredients());
-    } else {
-      await cancelDailyNotification();
-    }
-  };
 
   const handleChoose = (plan: Plan) => {
     Alert.alert(
@@ -314,25 +290,6 @@ export default function ProfilScreen({ navigation }: Props) {
               </View>
             </View>
           )}
-        </View>
-
-        {/* ── Notifications ─────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔔  Notifications</Text>
-          <View style={styles.notifRow}>
-            <View style={styles.notifTextBlock}>
-              <Text style={styles.notifLabel}>Rappels d'ingrédients</Text>
-              <Text style={styles.notifSub}>
-                Alerte quotidienne à 18h pour les ingrédients ajoutés depuis plus de 7 jours
-              </Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#D0D5D0', true: COLORS.greenLight }}
-              thumbColor={COLORS.white}
-            />
-          </View>
         </View>
 
         {/* ── Abonnement ────────────────────────────────────────────────────── */}
@@ -559,27 +516,6 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontStyle: 'italic',
     paddingTop: 4,
-  },
-
-  // Notifications
-  notifRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  notifTextBlock: {
-    flex: 1,
-  },
-  notifLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textDark,
-    marginBottom: 3,
-  },
-  notifSub: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    lineHeight: 17,
   },
 
   // Plans
