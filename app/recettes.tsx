@@ -76,7 +76,7 @@ export default function RecettesScreen({ navigation }: Props) {
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.8}
-      onPress={() => navigation.navigate('RecetteDetail', { recipe: item.recipe })}
+      onPress={() => navigation.getParent()?.navigate('RecetteDetail', { recipe: item.recipe })}
     >
       <Text style={styles.cardEmoji}>{item.recipe.emoji}</Text>
       <View style={styles.cardBody}>
