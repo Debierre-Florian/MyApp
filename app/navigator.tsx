@@ -87,7 +87,7 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: TAB_GREEN,
+          backgroundColor: '#FFFFFF',
           borderTopWidth: 0,
           elevation: 10,
           shadowColor: '#000',
@@ -95,8 +95,8 @@ function MainTabs() {
           shadowOpacity: 0.15,
           shadowRadius: 6,
         },
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#A5D6A7',
+        tabBarActiveTintColor: '#2D6A4F',
+        tabBarInactiveTintColor: '#999999',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
