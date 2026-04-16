@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView } from 'expo-camera';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
@@ -41,6 +41,16 @@ export default function TicketScreen({ navigation }: Props) {
   const { cameraRef, permission, cameraState, capturedPhoto, openCamera, closeCamera, takePicture, retake } =
     useCamera();
   const { addIngredient, addIngredients } = useFrigo();
+
+  // Masque le tab bar quand la caméra est active
+  useEffect(() => {
+    const parent = navigation.getParent();
+    if (cameraState === 'active' || cameraState === 'captured') {
+      parent?.setOptions({ tabBarStyle: { display: 'none' } });
+    } else {
+      parent?.setOptions({ tabBarStyle: undefined });
+    }
+  }, [cameraState, navigation]);
 
   const [scanning, setScanning] = useState(false);
   const [addedProducts, setAddedProducts] = useState<string[] | null>(null);
@@ -99,10 +109,12 @@ export default function TicketScreen({ navigation }: Props) {
           <TouchableOpacity onPress={takePicture} style={styles.shutterBtn}>
             <View style={styles.shutterInner} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryBtn}>
-            <Text style={styles.galleryBtnTxt}>🖼️ Choisir une photo</Text>
-          </TouchableOpacity>
         </SafeAreaView>
+
+        {/* Gallery FAB */}
+        <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryFab}>
+          <Text style={styles.galleryFabIcon}>🖼️</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -571,18 +583,22 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: COLORS.white,
   },
-  galleryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  galleryFab: {
+    position: 'absolute',
+    bottom: 52,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
   },
-  galleryBtnTxt: {
-    color: COLORS.white,
-    fontWeight: '600',
-    fontSize: 14,
+  galleryFabIcon: {
+    fontSize: 22,
   },
   captureOverlay: {
     flex: 1,

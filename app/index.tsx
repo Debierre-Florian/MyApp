@@ -53,6 +53,16 @@ export default function HomeScreen({ navigation }: Props) {
     initNotifications(checkExpiringIngredients());
   }, [checkExpiringIngredients]);
 
+  // Masque le tab bar quand la caméra est active
+  useEffect(() => {
+    const parent = navigation.getParent();
+    if (cameraState === 'active' || cameraState === 'captured') {
+      parent?.setOptions({ tabBarStyle: { display: 'none' } });
+    } else {
+      parent?.setOptions({ tabBarStyle: undefined });
+    }
+  }, [cameraState, navigation]);
+
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [ingredientText, setIngredientText] = useState('');
 
