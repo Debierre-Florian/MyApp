@@ -84,6 +84,7 @@ const TAB_GREEN = '#1B5E20';
 function MainTabs() {
   return (
     <Tab.Navigator
+      safeAreaInsets={{ bottom: 0 }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
@@ -94,7 +95,10 @@ function MainTabs() {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.15,
           shadowRadius: 6,
+          paddingBottom: 8,
+          height: 60,
         },
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: '#FFFFFF',
         tabBarInactiveTintColor: '#A5D6A7',
         tabBarLabelStyle: {
