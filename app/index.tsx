@@ -13,7 +13,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView } from 'expo-camera';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
@@ -49,9 +48,6 @@ export default function HomeScreen({ navigation }: Props) {
   const { cameraRef, permission, cameraState, capturedPhoto, openCamera, closeCamera, takePicture, retake } =
     useCamera();
   const { checkExpiringIngredients } = useFrigo();
-  const insets = useSafeAreaInsets();
-  // Tab bar height = 49 (standard) + safe area bottom + marge respiratoire
-  const tabBarPadding = 49 + insets.bottom + 16;
 
   useEffect(() => {
     initNotifications(checkExpiringIngredients());
@@ -201,7 +197,7 @@ export default function HomeScreen({ navigation }: Props) {
       </View>
 
       {/* Main content */}
-      <ScrollView contentContainerStyle={[styles.body, { paddingBottom: tabBarPadding }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {/* Hero card */}
         <View style={styles.heroCard}>
           <Text style={styles.heroTitle}>Qu'est-ce qu'il y a dans ton frigo ?</Text>
