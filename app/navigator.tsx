@@ -87,6 +87,11 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 60,
           backgroundColor: '#F8F8F8',
           borderTopWidth: 1,
           borderTopColor: '#E0E0E0',
@@ -96,7 +101,6 @@ function MainTabs() {
           shadowOpacity: 0.08,
           shadowRadius: 6,
           paddingBottom: 8,
-          height: 60,
         },
         tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: '#2D6A4F',

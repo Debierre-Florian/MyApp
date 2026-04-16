@@ -4,7 +4,7 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
+
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
@@ -68,7 +68,7 @@ export default function RecettesScreen({ navigation }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar style="light" backgroundColor={COLORS.green} />
 
       <View style={styles.header}>
@@ -95,7 +95,7 @@ export default function RecettesScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 60,
     flexGrow: 1,
   },
   card: {

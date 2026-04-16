@@ -2,7 +2,7 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
+
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
@@ -135,7 +135,7 @@ export default function FrigoScreen({ navigation }: Props) {
   const dangerCount = sorted.filter((i) => getFreshness(getDaysOld(i.addedAt)) === 'danger').length;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar style="light" backgroundColor={COLORS.green} />
 
       {/* Header */}
@@ -198,7 +198,7 @@ export default function FrigoScreen({ navigation }: Props) {
           )}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   listContent: {
     backgroundColor: COLORS.offWhite,
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 60,
     flexGrow: 1,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
