@@ -4,7 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-
+  SafeAreaView,
   Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -199,7 +199,7 @@ export default function ProfilScreen({ navigation }: Props) {
   const hasAllergies = preferences.allergies.length > 0;
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" backgroundColor={COLORS.green} />
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
@@ -310,7 +310,7 @@ export default function ProfilScreen({ navigation }: Props) {
           />
         ))}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 60,
+    paddingBottom: 48,
   },
 
   // Identity card
