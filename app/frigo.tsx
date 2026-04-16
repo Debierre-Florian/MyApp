@@ -8,16 +8,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { HomeStackParamList, TabParamList } from './navigator';
+import { TabParamList } from './navigator';
 import { useFrigo, type FrigoIngredient } from '../hooks/useFrigo';
 
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<TabParamList, 'Frigo'>,
-  NativeStackScreenProps<HomeStackParamList>
->;
+type Props = BottomTabScreenProps<TabParamList, 'Frigo'>;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 

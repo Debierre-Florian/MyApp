@@ -16,9 +16,18 @@ import { Recipe } from '../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-/** Écrans du stack "accueil" — tab bar cachée quand on y navigue */
-export type HomeStackParamList = {
+/** Onglets de la barre du bas — écrans directs, sans stack imbriqué */
+export type TabParamList = {
   Home: undefined;
+  Frigo: undefined;
+  Recettes: undefined;
+  Profil: undefined;
+};
+
+/** Stack racine — tabs + tous les écrans secondaires au même niveau */
+export type RootStackParamList = {
+  Main: NavigatorScreenParams<TabParamList> | undefined;
+  Onboarding: undefined;
   Analyse: {
     photoUri?: string;
     ingredientText?: string;
@@ -30,57 +39,9 @@ export type HomeStackParamList = {
   Preferences: undefined;
 };
 
-/** Onglets de la barre du bas */
-export type TabParamList = {
-  HomeStack: NavigatorScreenParams<HomeStackParamList> | undefined;
-  Frigo: undefined;
-  Recettes: undefined;
-  Profil: undefined;
-};
-
-/** Root stack — uniquement Onboarding + MainTabs */
-export type RootStackParamList = {
-  Onboarding: undefined;
-  MainTabs: NavigatorScreenParams<TabParamList> | undefined;
-};
-
-// ─── Home stack ───────────────────────────────────────────────────────────────
-
-const HomeStack = createNativeStackNavigator<HomeStackParamList>();
-
-function HomeStackNavigator() {
-  return (
-    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name="Home" component={HomeScreen} />
-      <HomeStack.Screen
-        name="Analyse"
-        component={AnalyseScreen}
-        options={{ animation: 'slide_from_bottom' }}
-      />
-      <HomeStack.Screen
-        name="RecetteDetail"
-        component={RecetteScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <HomeStack.Screen
-        name="Ticket"
-        component={TicketScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <HomeStack.Screen
-        name="Preferences"
-        component={PreferencesScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-    </HomeStack.Navigator>
-  );
-}
-
 // ─── Tab navigator ────────────────────────────────────────────────────────────
 
 const Tab = createBottomTabNavigator<TabParamList>();
-
-const TAB_GREEN = '#1B5E20';
 
 function MainTabs() {
   return (
@@ -106,7 +67,7 @@ function MainTabs() {
         tabBarIcon: ({ color, size, focused }) => {
           let iconName: React.ComponentProps<typeof Ionicons>['name'];
 
-          if (route.name === 'HomeStack') {
+          if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Frigo') {
             iconName = focused ? 'cube' : 'cube-outline';
@@ -121,8 +82,8 @@ function MainTabs() {
       })}
     >
       <Tab.Screen
-        name="HomeStack"
-        component={HomeStackNavigator}
+        name="Home"
+        component={HomeScreen}
         options={{ tabBarLabel: 'Accueil' }}
       />
       <Tab.Screen
@@ -148,12 +109,35 @@ function MainTabs() {
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-export default function Navigator({ initialRoute }: { initialRoute: 'Onboarding' | 'MainTabs' }) {
+export default function Navigator({ initialRoute }: { initialRoute: 'Onboarding' | 'Main' }) {
   return (
     <NavigationContainer ref={navigationRef as any}>
-      <RootStack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+      <RootStack.Navigator
+        initialRouteName={initialRoute}
+        screenOptions={{ headerShown: false }}
+      >
+        <RootStack.Screen name="Main" component={MainTabs} />
         <RootStack.Screen name="Onboarding" component={OnboardingScreen} />
-        <RootStack.Screen name="MainTabs" component={MainTabs} />
+        <RootStack.Screen
+          name="Analyse"
+          component={AnalyseScreen}
+          options={{ animation: 'slide_from_bottom' }}
+        />
+        <RootStack.Screen
+          name="RecetteDetail"
+          component={RecetteScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <RootStack.Screen
+          name="Ticket"
+          component={TicketScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <RootStack.Screen
+          name="Preferences"
+          component={PreferencesScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
       </RootStack.Navigator>
     </NavigationContainer>
   );

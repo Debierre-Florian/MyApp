@@ -13,15 +13,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { HomeStackParamList, TabParamList } from './navigator';
+import { RootStackParamList, TabParamList } from './navigator';
 import { useHistorique, HistoriqueEntry } from '../hooks/useHistorique';
-import { navigationRef } from '../services/navigationRef';
 
 export const RECIPES_HISTORY_KEY = '@recipes_history';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Recettes'>,
-  NativeStackScreenProps<HomeStackParamList>
+  NativeStackScreenProps<RootStackParamList>
 >;
 
 const COLORS = {
@@ -77,7 +76,7 @@ export default function RecettesScreen({ navigation }: Props) {
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.8}
-      onPress={() => navigationRef.navigate('RecetteDetail', { recipe: item.recipe })}
+      onPress={() => navigation.navigate('RecetteDetail', { recipe: item.recipe })}
     >
       <Text style={styles.cardEmoji}>{item.recipe.emoji}</Text>
       <View style={styles.cardBody}>
@@ -123,7 +122,7 @@ export default function RecettesScreen({ navigation }: Props) {
           <TouchableOpacity
             style={styles.emptyBtn}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('HomeStack', { screen: 'Home' })}
+            onPress={() => navigation.navigate('Home')}
           >
             <Text style={styles.emptyBtnTxt}>← Retour à l'accueil</Text>
           </TouchableOpacity>

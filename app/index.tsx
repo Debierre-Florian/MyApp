@@ -22,11 +22,11 @@ import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
-import { HomeStackParamList, TabParamList } from './navigator';
+import { RootStackParamList, TabParamList } from './navigator';
 
 type Props = CompositeScreenProps<
-  NativeStackScreenProps<HomeStackParamList, 'Home'>,
-  BottomTabScreenProps<TabParamList>
+  BottomTabScreenProps<TabParamList, 'Home'>,
+  NativeStackScreenProps<RootStackParamList>
 >;
 
 const { width, height } = Dimensions.get('window');
@@ -55,11 +55,10 @@ export default function HomeScreen({ navigation }: Props) {
 
   // Masque le tab bar quand la caméra est active
   useEffect(() => {
-    const parent = navigation.getParent();
     if (cameraState === 'active' || cameraState === 'captured') {
-      parent?.setOptions({ tabBarStyle: { display: 'none' } });
+      navigation.setOptions({ tabBarStyle: { display: 'none' } });
     } else {
-      parent?.setOptions({ tabBarStyle: undefined });
+      navigation.setOptions({ tabBarStyle: undefined });
     }
   }, [cameraState, navigation]);
 

@@ -13,13 +13,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { HomeStackParamList, TabParamList } from './navigator';
+import { RootStackParamList, TabParamList } from './navigator';
 import { usePreferences } from '../hooks/usePreferences';
 import { useFrigo } from '../hooks/useFrigo';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Profil'>,
-  NativeStackScreenProps<HomeStackParamList>
+  NativeStackScreenProps<RootStackParamList>
 >;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────

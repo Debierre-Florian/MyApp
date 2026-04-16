@@ -9,11 +9,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { HomeStackParamList } from './navigator';
+import { RootStackParamList } from './navigator';
 import { useFrigo } from '../hooks/useFrigo';
 import { useHistorique } from '../hooks/useHistorique';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'RecetteDetail'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'RecetteDetail'>;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const COLORS = {
