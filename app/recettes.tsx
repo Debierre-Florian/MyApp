@@ -15,6 +15,7 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParamList, TabParamList } from './navigator';
 import { useHistorique, HistoriqueEntry } from '../hooks/useHistorique';
+import { navigationRef } from '../services/navigationRef';
 
 export const RECIPES_HISTORY_KEY = '@recipes_history';
 
@@ -76,7 +77,7 @@ export default function RecettesScreen({ navigation }: Props) {
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.8}
-      onPress={() => navigation.getParent()?.navigate('RecetteDetail', { recipe: item.recipe })}
+      onPress={() => navigationRef.navigate('RecetteDetail', { recipe: item.recipe })}
     >
       <Text style={styles.cardEmoji}>{item.recipe.emoji}</Text>
       <View style={styles.cardBody}>

@@ -1,4 +1,5 @@
 import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
+import { navigationRef } from '../services/navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -149,7 +150,7 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 export default function Navigator({ initialRoute }: { initialRoute: 'Onboarding' | 'MainTabs' }) {
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef as any}>
       <RootStack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
         <RootStack.Screen name="Onboarding" component={OnboardingScreen} />
         <RootStack.Screen name="MainTabs" component={MainTabs} />
