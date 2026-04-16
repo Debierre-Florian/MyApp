@@ -7,10 +7,11 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParamList } from './navigator';
 import { useFrigo } from '../hooks/useFrigo';
+import { useHistorique } from '../hooks/useHistorique';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'RecetteDetail'>;
 
@@ -38,6 +39,11 @@ const COLORS = {
 export default function RecetteScreen({ route, navigation }: Props) {
   const { recipe } = route.params;
   const { ingredients: frigoIngredients } = useFrigo();
+  const { addToHistorique } = useHistorique();
+
+  useEffect(() => {
+    addToHistorique(recipe);
+  }, []);
 
   // Set of frigo ingredient names (lowercase) for O(1) lookup
   const frigoNames = new Set(frigoIngredients.map((i) => i.name.toLowerCase()));
