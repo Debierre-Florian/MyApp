@@ -18,131 +18,56 @@ import { analysePhoto, type Recipe } from '../services/api';
 import { useFrigo } from '../hooks/useFrigo';
 import { usePreferences } from '../hooks/usePreferences';
 import { RECIPES_HISTORY_KEY } from './recettes';
+import { COLORS, FONTS } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Analyse'>;
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const COLORS = {
-  green: '#1B5E20',
-  greenMid: '#2E7D32',
-  greenLight: '#43A047',
-  greenPale: '#C8E6C9',
-  white: '#FFFFFF',
-  offWhite: '#F9FBF9',
-  textDark: '#1A1A1A',
-  textMuted: '#6B7F6B',
-  cardBorder: '#E8F0E8',
-  errorBg: '#FFF3F3',
-  errorBorder: '#FFCDD2',
-  errorText: '#C62828',
-};
-
-// ─── Spinner ──────────────────────────────────────────────────────────────────
-function Spinner() {
-  const rotation = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.timing(rotation, {
-        toValue: 1,
-        duration: 1000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.12, duration: 600, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-
-  const spin = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-
-  return (
-    <Animated.View style={[styles.spinnerOuter, { transform: [{ scale: pulse }] }]}>
-      <Animated.View style={[styles.spinnerArc, { transform: [{ rotate: spin }] }]} />
-      <Text style={styles.spinnerEmoji}>🥦</Text>
-    </Animated.View>
-  );
-}
-
-// ─── Loading dot ──────────────────────────────────────────────────────────────
 function LoadingDot({ delay }: { delay: number }) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
-
+  const opacity = useRef(new Animated.Value(0.2)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 1, duration: 500, delay, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.2, duration: 500, useNativeDriver: true }),
       ])
     ).start();
   }, []);
-
   return <Animated.View style={[styles.loadingDot, { opacity }]} />;
 }
 
-// ─── Recipe card ──────────────────────────────────────────────────────────────
 function RecipeCard({
-  recipe,
-  index,
-  onPress,
+  recipe, index, onPress,
 }: {
-  recipe: Recipe;
-  index: number;
-  onPress: () => void;
+  recipe: Recipe; index: number; onPress: () => void;
 }) {
-  const slideAnim = useRef(new Animated.Value(40)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
+  const slide = useRef(new Animated.Value(30)).current;
+  const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 380,
-        delay: index * 120,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+      Animated.timing(slide, {
+        toValue: 0, duration: 380, delay: index * 100,
+        easing: Easing.out(Easing.cubic), useNativeDriver: true,
       }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 380,
-        delay: index * 120,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fade, { toValue: 1, duration: 380, delay: index * 100, useNativeDriver: true }),
     ]).start();
   }, []);
 
   return (
-    <Animated.View
-      style={[styles.recipeCard, { opacity: opacityAnim, transform: [{ translateY: slideAnim }] }]}
-    >
-      {/* Header */}
-      <View style={styles.recipeHeader}>
-        <View style={styles.recipeEmojiWrapper}>
+    <Animated.View style={[styles.recipeCard, { opacity: fade, transform: [{ translateY: slide }] }]}>
+      <View style={styles.recipeHead}>
+        <View style={styles.recipeEmojiBox}>
           <Text style={styles.recipeEmoji}>{recipe.emoji}</Text>
         </View>
-        <View style={styles.recipeMeta}>
+        <View style={{ flex: 1 }}>
           <Text style={styles.recipeName}>{recipe.name}</Text>
-          <View style={styles.recipeBadges}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeTxt}>⏱ {recipe.time}</Text>
-            </View>
-            <View style={[styles.badge, styles.badgeGreen]}>
-              <Text style={[styles.badgeTxt, styles.badgeGreenTxt]}>{recipe.difficulty}</Text>
-            </View>
+          <View style={styles.recipeMeta}>
+            <Text style={styles.recipeTime}>⏱ {recipe.time.toUpperCase()}</Text>
+            <Text style={styles.recipeDot}>·</Text>
+            <Text style={styles.recipeDifficulty}>{recipe.difficulty}</Text>
           </View>
         </View>
       </View>
-
-      {/* Description */}
-      <Text style={styles.recipeDescription}>{recipe.description}</Text>
-
-      {/* Ingredients */}
+      <Text style={styles.recipeDesc}>{recipe.description}</Text>
       <View style={styles.ingredientsRow}>
         {recipe.ingredients.map((ing) => (
           <View key={ing} style={styles.ingredientChip}>
@@ -150,43 +75,35 @@ function RecipeCard({
           </View>
         ))}
       </View>
-
-      {/* CTA */}
-      <TouchableOpacity style={styles.recipeBtn} activeOpacity={0.8} onPress={onPress}>
-        <Text style={styles.recipeBtnTxt}>Voir la recette →</Text>
+      <TouchableOpacity style={styles.recipeBtn} activeOpacity={0.85} onPress={onPress}>
+        <Text style={styles.recipeBtnTxt}>VOIR LA RECETTE →</Text>
       </TouchableOpacity>
     </Animated.View>
   );
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function AnalyseScreen({ route, navigation }: Props) {
   const { photoUri, ingredientText } = route.params;
-
   type Phase = 'loading' | 'results' | 'error';
   const [phase, setPhase] = useState<Phase>('loading');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [detectedIngredients, setDetectedIngredients] = useState<string[]>([]);
+  const [detected, setDetected] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
-
   const { addIngredients } = useFrigo();
   const { preferences } = usePreferences();
 
   useEffect(() => {
     let cancelled = false;
-
     async function run() {
       try {
         const result = await analysePhoto({ photoUri, ingredientText, preferences });
         if (cancelled) return;
         setRecipes(result.recipes);
-        setDetectedIngredients(result.detectedIngredients);
+        setDetected(result.detectedIngredients);
         setPhase('results');
-        // Persist detected ingredients to the frigo
         if (result.detectedIngredients.length > 0) {
           addIngredients(result.detectedIngredients);
         }
-        // Save recipes to history
         if (result.recipes.length > 0) {
           const raw = await AsyncStorage.getItem(RECIPES_HISTORY_KEY);
           const existing: Recipe[] = raw ? JSON.parse(raw) : [];
@@ -195,44 +112,29 @@ export default function AnalyseScreen({ route, navigation }: Props) {
         }
       } catch (err) {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue.';
-        setErrorMessage(message);
+        setErrorMessage(err instanceof Error ? err.message : 'Une erreur inattendue est survenue.');
         setPhase('error');
       }
     }
-
     run();
     return () => { cancelled = true; };
   }, []);
 
   const handleRetake = () => navigation.goBack();
 
-  // ── Loading ──────────────────────────────────────────────────────────────
   if (phase === 'loading') {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <StatusBar style="light" backgroundColor={COLORS.green} />
-
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={styles.previewImage} resizeMode="cover" />
-        ) : (
-          <View style={styles.textPreviewBox}>
-            <Text style={styles.textPreviewLabel}>Ingrédients saisis</Text>
-            <Text style={styles.textPreviewContent}>{ingredientText}</Text>
-          </View>
-        )}
-
-        <View style={styles.loaderBox}>
-          <Spinner />
-          <Text style={styles.loaderTitle}>FrigoAI analyse votre frigo...</Text>
-          <Text style={styles.loaderSubtitle}>
-            Identification des ingrédients et recherche de recettes
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" backgroundColor={COLORS.cream} />
+        <View style={styles.loadingBox}>
+          <Text style={styles.loadingKicker}>EN COURS D'ANALYSE</Text>
+          <Text style={styles.loadingTitle}>
+            <Text style={styles.loadingItalic}>Identification</Text>{'\n'}des ingrédients…
           </Text>
-
-          <View style={styles.stepsListLoader}>
+          <View style={styles.stepsList}>
             {["Analyse de l'image", 'Identification des aliments', 'Génération des recettes'].map(
               (step, i) => (
-                <View key={step} style={styles.stepRowLoader}>
+                <View key={step} style={styles.stepRow}>
                   <LoadingDot delay={i * 300} />
                   <Text style={styles.stepTxt}>{step}</Text>
                 </View>
@@ -244,84 +146,67 @@ export default function AnalyseScreen({ route, navigation }: Props) {
     );
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────
   if (phase === 'error') {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="light" backgroundColor={COLORS.green} />
-
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleRetake} style={styles.backBtn}>
-            <Text style={styles.backBtnTxt}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Erreur d'analyse</Text>
-          </View>
-          <View style={{ width: 36 }} />
-        </View>
-
+        <StatusBar style="dark" backgroundColor={COLORS.cream} />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorTitle}>Oups, quelque chose s'est mal passé</Text>
+          <Text style={styles.errorKicker}>ERREUR</Text>
+          <Text style={styles.errorTitle}>
+            Oups, <Text style={styles.loadingItalic}>quelque chose</Text>{'\n'}s'est mal passé.
+          </Text>
           <View style={styles.errorBox}>
             <Text style={styles.errorMsg}>{errorMessage}</Text>
           </View>
           <TouchableOpacity style={styles.retryBtn} onPress={handleRetake}>
-            <Text style={styles.retryBtnTxt}>← Réessayer</Text>
+            <Text style={styles.retryBtnTxt}>← RÉESSAYER</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ── Results ──────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" backgroundColor={COLORS.green} />
+      <StatusBar style="dark" backgroundColor={COLORS.cream} />
 
       <View style={styles.header}>
         <TouchableOpacity onPress={handleRetake} style={styles.backBtn}>
           <Text style={styles.backBtnTxt}>←</Text>
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Recettes suggérées</Text>
-          <Text style={styles.headerSubtitle}>{recipes.length} idées pour ce soir</Text>
-        </View>
-        <TouchableOpacity onPress={handleRetake} style={styles.retakeBtn}>
-          <Text style={styles.retakeBtnTxt}>Recommencer</Text>
-        </TouchableOpacity>
+        <Text style={styles.kicker}>RECETTES · {recipes.length} IDÉES</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView
-        style={styles.scroll}
+        style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Source preview */}
+        <Text style={styles.title}>
+          Pour <Text style={styles.loadingItalic}>ce soir</Text>.
+        </Text>
+        <View style={styles.rule} />
+
         {photoUri ? (
           <View style={styles.sourceCard}>
             <Image source={{ uri: photoUri }} style={styles.sourcePhoto} resizeMode="cover" />
             <View style={styles.sourceOverlay}>
-              <Text style={styles.sourceLabel}>📷  Votre frigo</Text>
+              <Text style={styles.sourceLabel}>PRISE AUJOURD'HUI</Text>
             </View>
           </View>
         ) : (
-          <View style={styles.sourceCard}>
-            <View style={styles.sourceTextBox}>
-              <Text style={styles.sourceTextLabel}>✏️  Ingrédients saisis</Text>
-              <Text style={styles.sourceTextContent} numberOfLines={2}>
-                {ingredientText}
-              </Text>
-            </View>
+          <View style={styles.sourceTextBox}>
+            <Text style={styles.sourceTextKicker}>INGRÉDIENTS SAISIS</Text>
+            <Text style={styles.sourceTextContent} numberOfLines={2}>{ingredientText}</Text>
           </View>
         )}
 
-        {/* Detected ingredients */}
-        {detectedIngredients.length > 0 && (
+        {detected.length > 0 && (
           <View style={styles.detectedBox}>
-            <Text style={styles.detectedTitle}>🔍  Ingrédients détectés</Text>
+            <Text style={styles.detectedKicker}>◉ INGRÉDIENTS DÉTECTÉS</Text>
             <View style={styles.ingredientsRow}>
-              {detectedIngredients.map((ing) => (
+              {detected.map((ing) => (
                 <View key={ing} style={[styles.ingredientChip, styles.ingredientChipDetected]}>
                   <Text style={styles.ingredientTxt}>{ing}</Text>
                 </View>
@@ -330,12 +215,8 @@ export default function AnalyseScreen({ route, navigation }: Props) {
           </View>
         )}
 
-        {/* Count */}
-        <Text style={styles.sectionTitle}>
-          <Text style={styles.sectionCount}>{recipes.length}</Text> recettes trouvées
-        </Text>
+        <Text style={styles.sectionLabel}>{recipes.length} RECETTES TROUVÉES</Text>
 
-        {/* Recipe cards */}
         {recipes.map((recipe, i) => (
           <RecipeCard
             key={`${recipe.name}-${i}`}
@@ -345,444 +226,196 @@ export default function AnalyseScreen({ route, navigation }: Props) {
           />
         ))}
 
-        {/* Bottom CTA */}
-        <TouchableOpacity style={styles.bottomRetakeBtn} onPress={handleRetake} activeOpacity={0.85}>
-          <Text style={styles.bottomRetakeTxt}>📸  Analyser un autre frigo</Text>
+        <TouchableOpacity style={styles.retakeBtn} onPress={handleRetake} activeOpacity={0.85}>
+          <Text style={styles.retakeBtnTxt}>◉ ANALYSER UN AUTRE FRIGO</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // ── Loading ──────────────────────────────────────────────────────────────────
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: COLORS.green,
-  },
-  previewImage: {
-    width: '100%',
-    height: 220,
-    opacity: 0.55,
-  },
-  textPreviewBox: {
-    margin: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 16,
-    padding: 16,
-  },
-  textPreviewLabel: {
-    color: COLORS.greenPale,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  textPreviewContent: {
-    color: COLORS.white,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  loaderBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  spinnerOuter: {
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  spinnerArc: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    borderColor: 'transparent',
-    borderTopColor: COLORS.white,
-    borderRightColor: 'rgba(255,255,255,0.4)',
-  },
-  spinnerEmoji: {
-    fontSize: 30,
-  },
-  loaderTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  loaderSubtitle: {
-    fontSize: 13,
-    color: COLORS.greenPale,
-    textAlign: 'center',
-    marginBottom: 28,
-    lineHeight: 19,
-  },
-  stepsListLoader: {
-    alignSelf: 'stretch',
-    gap: 12,
-  },
-  stepRowLoader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  loadingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.white,
-  },
-  stepTxt: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  safeArea: { flex: 1, backgroundColor: COLORS.cream },
 
-  // ── Error ─────────────────────────────────────────────────────────────────────
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 28,
-    backgroundColor: COLORS.offWhite,
+  // Loading
+  loadingBox: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32,
   },
-  errorIcon: {
-    fontSize: 52,
-    marginBottom: 16,
+  loadingKicker: {
+    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 1.5,
+    color: COLORS.terracotta, marginBottom: 12,
+  },
+  loadingTitle: {
+    fontFamily: FONTS.serif, fontSize: 36, lineHeight: 40,
+    color: COLORS.ink, textAlign: 'center', fontWeight: '700', letterSpacing: -1,
+    marginBottom: 28,
+  },
+  loadingItalic: {
+    fontFamily: FONTS.serifItalic, fontStyle: 'italic', color: COLORS.terracotta,
+  },
+  stepsList: { alignSelf: 'stretch', gap: 12 },
+  stepRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: COLORS.paper,
+    borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, paddingVertical: 12, paddingHorizontal: 14,
+  },
+  loadingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.terracotta },
+  stepTxt: { fontFamily: FONTS.serif, fontSize: 14, color: COLORS.ink },
+
+  // Error
+  errorContainer: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28,
+  },
+  errorKicker: {
+    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 1.5,
+    color: COLORS.terracotta, marginBottom: 12,
   },
   errorTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    textAlign: 'center',
-    marginBottom: 16,
+    fontFamily: FONTS.serif, fontSize: 32, lineHeight: 36,
+    color: COLORS.ink, textAlign: 'center', fontWeight: '700', marginBottom: 20,
   },
   errorBox: {
-    backgroundColor: COLORS.errorBg,
-    borderWidth: 1,
-    borderColor: COLORS.errorBorder,
-    borderRadius: 12,
-    padding: 16,
-    alignSelf: 'stretch',
-    marginBottom: 24,
+    backgroundColor: COLORS.terracottaBg,
+    borderWidth: 1, borderColor: COLORS.terracotta,
+    borderRadius: 4, padding: 16,
+    alignSelf: 'stretch', marginBottom: 24,
   },
   errorMsg: {
-    fontSize: 13,
-    color: COLORS.errorText,
-    lineHeight: 20,
+    fontFamily: FONTS.serif, fontSize: 14, color: COLORS.ink, lineHeight: 20,
   },
   retryBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.green,
+    paddingVertical: 12, paddingHorizontal: 24,
+    borderWidth: 1, borderColor: COLORS.ink, borderRadius: 4,
   },
   retryBtnTxt: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '700',
+    color: COLORS.ink, fontFamily: FONTS.mono,
+    fontSize: 11, letterSpacing: 1.5,
   },
 
-  // ── Results ───────────────────────────────────────────────────────────────────
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.green,
-  },
+  // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.green,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  backBtnTxt: { color: COLORS.ink, fontSize: 24, fontFamily: FONTS.serif },
+  kicker: { fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5, color: COLORS.inkSoft },
+
+  scrollContent: { padding: 24, paddingTop: 0, paddingBottom: 48 },
+
+  title: {
+    fontFamily: FONTS.serif, fontSize: 42, lineHeight: 46,
+    color: COLORS.ink, fontWeight: '700', letterSpacing: -1,
   },
-  backBtnTxt: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: '300',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  headerSubtitle: {
-    color: COLORS.greenPale,
-    fontSize: 12,
-    marginTop: 1,
-  },
-  retakeBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  retakeBtnTxt: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  scroll: {
-    flex: 1,
-    backgroundColor: COLORS.offWhite,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+  rule: { height: 1, backgroundColor: COLORS.ink, marginTop: 14, marginBottom: 20 },
+
+  sectionLabel: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5,
+    color: COLORS.olive, marginBottom: 10, marginTop: 8,
   },
 
-  // Source card
+  // Source
   sourceCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    borderRadius: 4, overflow: 'hidden', marginBottom: 16,
+    borderWidth: 1, borderColor: COLORS.rule,
   },
-  sourcePhoto: {
-    width: '100%',
-    height: 140,
-  },
+  sourcePhoto: { width: '100%', height: 160 },
   sourceOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 10,
+    position: 'absolute', bottom: 8, left: 8,
+    backgroundColor: 'rgba(30,27,22,0.85)',
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 3,
   },
   sourceLabel: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '600',
+    color: COLORS.cream, fontFamily: FONTS.mono,
+    fontSize: 9, letterSpacing: 1.3,
   },
   sourceTextBox: {
-    backgroundColor: COLORS.white,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    borderRadius: 16,
+    backgroundColor: COLORS.paper,
+    borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 14, marginBottom: 16,
   },
-  sourceTextLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.greenMid,
-    marginBottom: 6,
+  sourceTextKicker: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
+    color: COLORS.terracotta, marginBottom: 6,
   },
   sourceTextContent: {
-    fontSize: 14,
-    color: COLORS.textDark,
-    lineHeight: 20,
+    fontFamily: FONTS.serif, fontSize: 15, color: COLORS.ink, lineHeight: 22,
   },
 
-  // Detected ingredients
   detectedBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.oliveBg,
+    borderWidth: 1, borderColor: COLORS.oliveSoft,
+    borderRadius: 4, padding: 14, marginBottom: 16,
   },
-  detectedTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.greenMid,
-    marginBottom: 10,
-  },
-
-  // Section title
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-    marginBottom: 12,
-  },
-  sectionCount: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.greenMid,
+  detectedKicker: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
+    color: COLORS.olive, marginBottom: 10,
   },
 
   // Recipe card
   recipeCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: COLORS.paper,
+    borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 16, marginBottom: 12,
   },
-  recipeHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-    gap: 12,
+  recipeHead: { flexDirection: 'row', gap: 12, marginBottom: 10 },
+  recipeEmojiBox: {
+    width: 48, height: 48, borderRadius: 4,
+    backgroundColor: COLORS.creamDeep,
+    alignItems: 'center', justifyContent: 'center',
   },
-  recipeEmojiWrapper: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: COLORS.offWhite,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  recipeEmoji: {
-    fontSize: 26,
-  },
-  recipeMeta: {
-    flex: 1,
-  },
+  recipeEmoji: { fontSize: 26 },
   recipeName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    marginBottom: 6,
-    lineHeight: 20,
+    fontFamily: FONTS.serif, fontSize: 17,
+    color: COLORS.ink, marginBottom: 4, lineHeight: 22,
   },
-  recipeBadges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  recipeMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  recipeTime: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1, color: COLORS.terracotta,
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: '#F0F4F0',
+  recipeDot: { color: COLORS.muted },
+  recipeDifficulty: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 0.8, color: COLORS.olive,
+    paddingHorizontal: 5, paddingVertical: 1,
+    borderWidth: 1, borderColor: COLORS.oliveSoft, borderRadius: 3,
   },
-  badgeGreen: {
-    backgroundColor: COLORS.greenPale,
-  },
-  badgeTxt: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    fontWeight: '500',
-  },
-  badgeGreenTxt: {
-    color: COLORS.greenMid,
-  },
-  recipeDescription: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    lineHeight: 19,
-    marginBottom: 12,
+  recipeDesc: {
+    fontFamily: FONTS.serif, fontSize: 14,
+    color: COLORS.inkSoft, lineHeight: 20, marginBottom: 12,
   },
   ingredientsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 14,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14,
   },
   ingredientChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: COLORS.offWhite,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 3,
+    backgroundColor: COLORS.cream,
+    borderWidth: 1, borderColor: COLORS.rule,
   },
   ingredientChipDetected: {
-    backgroundColor: COLORS.greenPale,
-    borderColor: COLORS.greenLight,
+    backgroundColor: COLORS.paper, borderColor: COLORS.oliveSoft,
   },
   ingredientTxt: {
-    fontSize: 12,
-    color: COLORS.textDark,
-    fontWeight: '500',
+    fontFamily: FONTS.serif, fontSize: 12, color: COLORS.ink,
   },
 
-  // Steps
-  stepsList: {
-    gap: 8,
-    marginBottom: 14,
-  },
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-    flexShrink: 0,
-  },
-  stepNumberTxt: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  stepInstruction: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.textDark,
-    lineHeight: 20,
-  },
-
-  // CTA
   recipeBtn: {
-    backgroundColor: COLORS.green,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
+    backgroundColor: COLORS.ink, borderRadius: 4,
+    paddingVertical: 11, alignItems: 'center',
   },
   recipeBtnTxt: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '700',
+    color: COLORS.cream, fontFamily: FONTS.mono,
+    fontSize: 11, letterSpacing: 1.5, fontWeight: '700',
   },
 
-  // Bottom CTA
-  bottomRetakeBtn: {
-    marginTop: 8,
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.greenLight,
+  retakeBtn: {
+    marginTop: 8, paddingVertical: 14,
+    borderRadius: 4, alignItems: 'center',
+    borderWidth: 1, borderColor: COLORS.ink,
   },
-  bottomRetakeTxt: {
-    color: COLORS.greenMid,
-    fontSize: 15,
-    fontWeight: '700',
+  retakeBtnTxt: {
+    color: COLORS.ink, fontFamily: FONTS.mono,
+    fontSize: 11, letterSpacing: 1.5, fontWeight: '700',
   },
 });

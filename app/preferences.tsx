@@ -27,64 +27,41 @@ import {
   initNotifications,
   cancelDailyNotification,
 } from '../services/notifications';
+import { COLORS, FONTS } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Preferences'>;
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const COLORS = {
-  green: '#1B5E20',
-  greenMid: '#2E7D32',
-  greenLight: '#43A047',
-  greenPale: '#C8E6C9',
-  white: '#FFFFFF',
-  offWhite: '#F9FBF9',
-  textDark: '#1A1A1A',
-  textMuted: '#6B7F6B',
-  cardBorder: '#E8F0E8',
-  danger: '#C62828',
-  dangerBg: '#FFEBEE',
-  dangerBorder: '#FFCDD2',
-};
-
-// ─── Chip ─────────────────────────────────────────────────────────────────────
 function Chip({
-  label,
-  selected,
-  onPress,
-  color = COLORS.greenMid,
+  label, selected, onPress, tone = 'terra',
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
-  color?: string;
+  tone?: 'terra' | 'olive' | 'mustard';
 }) {
+  const activeBg =
+    tone === 'olive' ? COLORS.olive : tone === 'mustard' ? COLORS.mustard : COLORS.terracotta;
   return (
     <TouchableOpacity
-      style={[styles.chip, selected && { backgroundColor: color, borderColor: color }]}
+      style={[
+        styles.chip,
+        selected && { backgroundColor: activeBg, borderColor: activeBg },
+      ]}
       activeOpacity={0.75}
       onPress={onPress}
     >
       <Text style={[styles.chipTxt, selected && styles.chipTxtSelected]}>
-        {selected ? '✓ ' : ''}{label}
+        {label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-// ─── Tag (ingrédient ajouté) ──────────────────────────────────────────────────
-function Tag({
-  label,
-  onRemove,
-  color,
-  bg,
-}: {
-  label: string;
-  onRemove: () => void;
-  color: string;
-  bg: string;
-}) {
+function Tag({ label, onRemove, tone }: { label: string; onRemove: () => void; tone: 'olive' | 'terra' }) {
+  const color = tone === 'olive' ? COLORS.olive : COLORS.terracotta;
+  const bg = tone === 'olive' ? COLORS.oliveBg : COLORS.terracottaBg;
   return (
-    <View style={[styles.tag, { backgroundColor: bg, borderColor: color + '55' }]}>
+    <View style={[styles.tag, { backgroundColor: bg, borderColor: color }]}>
       <Text style={[styles.tagTxt, { color }]}>{label}</Text>
       <TouchableOpacity onPress={onRemove} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
         <Text style={[styles.tagRemove, { color }]}>✕</Text>
@@ -93,37 +70,28 @@ function Tag({
   );
 }
 
-// ─── Ingredient input section ─────────────────────────────────────────────────
 function IngredientInput({
-  items,
-  onAdd,
-  onRemove,
-  placeholder,
-  tagColor,
-  tagBg,
+  items, onAdd, onRemove, placeholder, tone,
 }: {
   items: string[];
   onAdd: (v: string) => void;
   onRemove: (v: string) => void;
   placeholder: string;
-  tagColor: string;
-  tagBg: string;
+  tone: 'olive' | 'terra';
 }) {
   const [value, setValue] = useState('');
-
   const submit = () => {
     if (!value.trim()) return;
     onAdd(value.trim());
     setValue('');
   };
-
   return (
     <View>
       <View style={styles.inputRow}>
         <TextInput
           style={styles.textInput}
           placeholder={placeholder}
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={COLORS.muted}
           value={value}
           onChangeText={setValue}
           onSubmitEditing={submit}
@@ -141,13 +109,7 @@ function IngredientInput({
       {items.length > 0 && (
         <View style={styles.tagList}>
           {items.map((item) => (
-            <Tag
-              key={item}
-              label={item}
-              onRemove={() => onRemove(item)}
-              color={tagColor}
-              bg={tagBg}
-            />
+            <Tag key={item} label={item} onRemove={() => onRemove(item)} tone={tone} />
           ))}
         </View>
       )}
@@ -155,28 +117,18 @@ function IngredientInput({
   );
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function PreferencesScreen({ navigation }: Props) {
   const {
-    preferences,
-    loading,
-    updatePreferences,
-    toggleAllergy,
-    addFavorite,
-    removeFavorite,
-    addDisliked,
-    removeDisliked,
+    preferences, loading, updatePreferences, toggleAllergy,
+    addFavorite, removeFavorite, addDisliked, removeDisliked,
   } = usePreferences();
   const { checkExpiringIngredients } = useFrigo();
+  const [notificationsEnabled, setNotifState] = useState(true);
 
-  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
+  useEffect(() => { getNotificationsEnabled().then(setNotifState); }, []);
 
-  useEffect(() => {
-    getNotificationsEnabled().then(setNotificationsEnabledState);
-  }, []);
-
-  const handleToggleNotifications = async (value: boolean) => {
-    setNotificationsEnabledState(value);
+  const handleToggleNotif = async (value: boolean) => {
+    setNotifState(value);
     await setNotificationsEnabled(value);
     if (value) {
       await initNotifications(checkExpiringIngredients());
@@ -189,17 +141,13 @@ export default function PreferencesScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" backgroundColor={COLORS.green} />
+      <StatusBar style="dark" backgroundColor={COLORS.cream} />
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnTxt}>←</Text>
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Préférences</Text>
-          <Text style={styles.headerSubtitle}>Personnalise tes recettes</Text>
-        </View>
+        <Text style={styles.kicker}>PRÉFÉRENCES</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -209,13 +157,18 @@ export default function PreferencesScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Prénom ────────────────────────────────────────────────────────── */}
+        <Text style={styles.title}>
+          Tes <Text style={styles.titleItalic}>goûts</Text>.
+        </Text>
+        <View style={styles.rule} />
+
+        {/* Prénom */}
+        <Text style={styles.sectionLabel}>MON PRÉNOM</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤  Mon prénom</Text>
           <TextInput
             style={styles.nameInput}
             placeholder="Comment tu t'appelles ?"
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={COLORS.muted}
             value={preferences.firstName}
             onChangeText={(v) => updatePreferences({ firstName: v })}
             autoCapitalize="words"
@@ -223,10 +176,10 @@ export default function PreferencesScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* ── Régime alimentaire ────────────────────────────────────────────── */}
+        {/* Régime */}
+        <Text style={styles.sectionLabel}>RÉGIME ALIMENTAIRE</Text>
+        <Text style={styles.sectionHint}>Un seul choix possible</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🥗  Régime alimentaire</Text>
-          <Text style={styles.sectionHint}>Un seul choix possible</Text>
           <View style={styles.chipList}>
             {DIET_OPTIONS.map((diet) => (
               <Chip
@@ -234,15 +187,16 @@ export default function PreferencesScreen({ navigation }: Props) {
                 label={diet}
                 selected={preferences.diet === diet}
                 onPress={() => updatePreferences({ diet: diet as DietType })}
+                tone="olive"
               />
             ))}
           </View>
         </View>
 
-        {/* ── Allergies ─────────────────────────────────────────────────────── */}
+        {/* Allergies */}
+        <Text style={styles.sectionLabel}>ALLERGIES</Text>
+        <Text style={styles.sectionHint}>Plusieurs choix possibles</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚠️  Allergies</Text>
-          <Text style={styles.sectionHint}>Plusieurs choix possibles</Text>
           <View style={styles.chipList}>
             {ALLERGY_OPTIONS.map((allergy) => (
               <Chip
@@ -250,55 +204,53 @@ export default function PreferencesScreen({ navigation }: Props) {
                 label={allergy}
                 selected={preferences.allergies.includes(allergy as AllergyType)}
                 onPress={() => toggleAllergy(allergy as AllergyType)}
-                color={COLORS.danger}
+                tone="terra"
               />
             ))}
           </View>
         </View>
 
-        {/* ── Ingrédients favoris ───────────────────────────────────────────── */}
+        {/* Favoris */}
+        <Text style={styles.sectionLabel}>INGRÉDIENTS FAVORIS</Text>
+        <Text style={styles.sectionHint}>Claude les privilégiera</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>❤️  Ingrédients favoris</Text>
-          <Text style={styles.sectionHint}>Claude les privilégiera dans les recettes</Text>
           <IngredientInput
             items={preferences.favoriteIngredients}
             onAdd={addFavorite}
             onRemove={removeFavorite}
-            placeholder="Ex: ail, basilic, parmesan..."
-            tagColor={COLORS.greenMid}
-            tagBg={COLORS.greenPale}
+            placeholder="ail, basilic, parmesan..."
+            tone="olive"
           />
         </View>
 
-        {/* ── Ingrédients détestés ──────────────────────────────────────────── */}
+        {/* Détestés */}
+        <Text style={styles.sectionLabel}>INGRÉDIENTS DÉTESTÉS</Text>
+        <Text style={styles.sectionHint}>Claude les évitera</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🚫  Ingrédients détestés</Text>
-          <Text style={styles.sectionHint}>Claude les évitera dans les recettes</Text>
           <IngredientInput
             items={preferences.dislikedIngredients}
             onAdd={addDisliked}
             onRemove={removeDisliked}
-            placeholder="Ex: coriandre, anchois, câpres..."
-            tagColor={COLORS.danger}
-            tagBg={COLORS.dangerBg}
+            placeholder="coriandre, anchois..."
+            tone="terra"
           />
         </View>
 
-        {/* ── Notifications ─────────────────────────────────────────────────── */}
+        {/* Notifications */}
+        <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔔  Notifications</Text>
           <View style={styles.notifRow}>
-            <View style={styles.notifTextBlock}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.notifLabel}>Rappels d'ingrédients</Text>
               <Text style={styles.notifHint}>
-                Alerte quotidienne à 18h pour les ingrédients ajoutés depuis plus de 7 jours
+                Alerte quotidienne à 18h pour les ingrédients ajoutés depuis plus de 7 jours.
               </Text>
             </View>
             <Switch
               value={notificationsEnabled}
-              onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#D0D5D0', true: COLORS.greenLight }}
-              thumbColor={COLORS.white}
+              onValueChange={handleToggleNotif}
+              trackColor={{ false: COLORS.rule, true: COLORS.olive }}
+              thumbColor={COLORS.cream}
             />
           </View>
         </View>
@@ -307,197 +259,98 @@ export default function PreferencesScreen({ navigation }: Props) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.green,
-  },
-
-  // Header
+  safeArea: { flex: 1, backgroundColor: COLORS.cream },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.green,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 36, height: 36, alignItems: 'center', justifyContent: 'center',
   },
   backBtnTxt: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: '300',
+    color: COLORS.ink, fontSize: 24, fontFamily: FONTS.serif,
   },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
+  kicker: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5, color: COLORS.inkSoft,
   },
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '700',
+  scroll: { flex: 1 },
+  scrollContent: { padding: 24, paddingBottom: 48 },
+  title: {
+    fontFamily: FONTS.serif, fontSize: 42, lineHeight: 46,
+    color: COLORS.ink, fontWeight: '700', letterSpacing: -1,
   },
-  headerSubtitle: {
-    color: COLORS.greenPale,
-    fontSize: 12,
-    marginTop: 1,
-  },
+  titleItalic: { fontFamily: FONTS.serifItalic, fontStyle: 'italic', color: COLORS.terracotta },
+  rule: { height: 1, backgroundColor: COLORS.ink, marginTop: 14, marginBottom: 20 },
 
-  // Scroll
-  scroll: {
-    flex: 1,
-    backgroundColor: COLORS.offWhite,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 48,
-  },
-
-  // Section
-  section: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    marginBottom: 4,
+  sectionLabel: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5,
+    color: COLORS.olive, marginBottom: 4, marginTop: 4,
   },
   sectionHint: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginBottom: 12,
+    fontFamily: FONTS.serifItalic, fontStyle: 'italic',
+    fontSize: 12, color: COLORS.muted, marginBottom: 8,
+  },
+  section: {
+    backgroundColor: COLORS.paper, borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 14, marginBottom: 18,
   },
 
-  // Name input
   nameInput: {
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
-    fontSize: 15,
-    color: COLORS.textDark,
-    backgroundColor: COLORS.offWhite,
+    borderWidth: 1, borderColor: COLORS.rule, borderRadius: 4,
+    paddingHorizontal: 14, paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: 15, color: COLORS.ink, backgroundColor: COLORS.cream,
+    fontFamily: FONTS.serif,
   },
 
-  // Chips
-  chipList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  chipList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
-    backgroundColor: COLORS.offWhite,
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 4, borderWidth: 1, borderColor: COLORS.rule,
+    backgroundColor: COLORS.cream,
   },
   chipTxt: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textMuted,
+    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 0.8,
+    color: COLORS.inkSoft, textTransform: 'uppercase',
   },
-  chipTxtSelected: {
-    color: COLORS.white,
-  },
+  chipTxtSelected: { color: COLORS.cream, fontWeight: '700' },
 
-  // Ingredient input
-  inputRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
+  inputRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   textInput: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 11 : 9,
-    fontSize: 14,
-    color: COLORS.textDark,
-    backgroundColor: COLORS.offWhite,
+    flex: 1, borderWidth: 1, borderColor: COLORS.rule, borderRadius: 4,
+    paddingHorizontal: 14, paddingVertical: Platform.OS === 'ios' ? 11 : 9,
+    fontSize: 14, color: COLORS.ink, backgroundColor: COLORS.cream,
+    fontFamily: FONTS.serif,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.green,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 4,
+    backgroundColor: COLORS.ink,
+    alignItems: 'center', justifyContent: 'center',
   },
-  addBtnDisabled: {
-    opacity: 0.35,
-  },
+  addBtnDisabled: { opacity: 0.35 },
   addBtnTxt: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: '300',
-    lineHeight: 26,
+    color: COLORS.cream, fontSize: 22, fontFamily: FONTS.sans,
   },
 
-  // Notifications
-  notifRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  notifTextBlock: {
-    flex: 1,
-  },
+  notifRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   notifLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textDark,
-    marginBottom: 3,
+    fontFamily: FONTS.serif, fontSize: 15, color: COLORS.ink, marginBottom: 3,
   },
   notifHint: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    lineHeight: 17,
+    fontFamily: FONTS.serifItalic, fontStyle: 'italic',
+    fontSize: 12, color: COLORS.inkSoft, lineHeight: 17,
   },
 
-  // Tags
-  tagList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  tagList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 6,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 4, borderWidth: 1, gap: 6,
   },
   tagTxt: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: FONTS.serif, fontSize: 13, fontWeight: '600',
   },
   tagRemove: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 11, fontWeight: '700', fontFamily: FONTS.mono,
   },
 });

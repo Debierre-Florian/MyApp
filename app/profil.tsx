@@ -16,31 +16,14 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from './navigator';
 import { usePreferences } from '../hooks/usePreferences';
 import { useFrigo } from '../hooks/useFrigo';
+import { useScore } from '../hooks/useScore';
+import { COLORS, FONTS } from '../constants/theme';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Profil'>,
   NativeStackScreenProps<RootStackParamList>
 >;
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const COLORS = {
-  green: '#1B5E20',
-  greenMid: '#2E7D32',
-  greenLight: '#43A047',
-  greenPale: '#C8E6C9',
-  white: '#FFFFFF',
-  offWhite: '#F9FBF9',
-  textDark: '#1A1A1A',
-  textMuted: '#6B7F6B',
-  cardBorder: '#E8F0E8',
-  gold: '#F9A825',
-  goldBg: '#FFFDE7',
-  goldBorder: '#F9A825',
-  danger: '#C62828',
-  dangerBg: '#FFEBEE',
-};
-
-// ─── Plans ────────────────────────────────────────────────────────────────────
 type PlanId = 'free' | 'essential' | 'premium';
 
 interface Plan {
@@ -48,7 +31,6 @@ interface Plan {
   name: string;
   price: string;
   period: string;
-  emoji: string;
   features: string[];
   highlight?: boolean;
 }
@@ -59,19 +41,13 @@ const PLANS: Plan[] = [
     name: 'Gratuit',
     price: '0€',
     period: 'pour toujours',
-    emoji: '🌱',
-    features: [
-      '3 analyses par jour',
-      'Recettes basiques',
-      'Gestion du frigo',
-    ],
+    features: ['3 analyses par jour', 'Recettes basiques', 'Gestion du frigo'],
   },
   {
     id: 'essential',
     name: 'Essentiel',
     price: '4,99€',
     period: 'par mois',
-    emoji: '⭐',
     features: [
       'Analyses illimitées',
       'Recettes personnalisées',
@@ -85,7 +61,6 @@ const PLANS: Plan[] = [
     name: 'Premium',
     price: '9,99€',
     period: 'par mois',
-    emoji: '👑',
     features: [
       'Tout Essentiel inclus',
       'Planification de menus',
@@ -95,96 +70,56 @@ const PLANS: Plan[] = [
   },
 ];
 
-// ─── Plan card ────────────────────────────────────────────────────────────────
-function PlanCard({
-  plan,
-  active,
-  onChoose,
-}: {
-  plan: Plan;
-  active: boolean;
-  onChoose: () => void;
-}) {
-  const isHighlighted = plan.highlight && !active;
-
+function PlanCard({ plan, active, onChoose }: { plan: Plan; active: boolean; onChoose: () => void }) {
   return (
-    <View
-      style={[
-        styles.planCard,
-        active && styles.planCardActive,
-        isHighlighted && styles.planCardHighlighted,
-      ]}
-    >
-      {plan.highlight && (
+    <View style={[styles.planCard, active && styles.planCardActive]}>
+      {plan.highlight && !active && (
         <View style={styles.popularBadge}>
-          <Text style={styles.popularBadgeTxt}>Populaire</Text>
+          <Text style={styles.popularBadgeTxt}>POPULAIRE</Text>
         </View>
       )}
-
-      {/* Header */}
-      <View style={styles.planHeader}>
-        <Text style={styles.planEmoji}>{plan.emoji}</Text>
-        <View style={styles.planHeaderText}>
-          <Text style={[styles.planName, active && styles.planNameActive]}>{plan.name}</Text>
-          <View style={styles.planPriceRow}>
-            <Text style={[styles.planPrice, active && styles.planPriceActive]}>{plan.price}</Text>
-            <Text style={[styles.planPeriod, active && styles.planPeriodActive]}>
-              {' '}/ {plan.period}
-            </Text>
-          </View>
-        </View>
-        {active && (
-          <View style={styles.activeBadge}>
-            <Text style={styles.activeBadgeTxt}>Actif</Text>
-          </View>
-        )}
+      <Text style={[styles.planKicker, active && styles.planKickerActive]}>
+        {plan.name.toUpperCase()}
+      </Text>
+      <View style={styles.priceRow}>
+        <Text style={[styles.price, active && styles.priceActive]}>{plan.price}</Text>
+        <Text style={[styles.period, active && styles.periodActive]}>/{plan.period}</Text>
       </View>
-
-      {/* Features */}
       <View style={styles.featureList}>
-        {plan.features.map((feat) => (
-          <View key={feat} style={styles.featureRow}>
-            <Text style={[styles.featureCheck, active && styles.featureCheckActive]}>✓</Text>
-            <Text style={[styles.featureTxt, active && styles.featureTxtActive]}>{feat}</Text>
+        {plan.features.map((f) => (
+          <View key={f} style={styles.featureRow}>
+            <Text style={[styles.featureCheck, active && styles.featureCheckActive]}>—</Text>
+            <Text style={[styles.featureTxt, active && styles.featureTxtActive]}>{f}</Text>
           </View>
         ))}
       </View>
-
-      {/* CTA */}
       {active ? (
-        <View style={styles.planActiveBtn}>
-          <Text style={styles.planActiveBtnTxt}>Plan actuel</Text>
+        <View style={styles.activeBtn}>
+          <Text style={styles.activeBtnTxt}>PLAN ACTUEL</Text>
         </View>
       ) : (
-        <TouchableOpacity style={styles.planChooseBtn} activeOpacity={0.8} onPress={onChoose}>
-          <Text style={styles.planChooseBtnTxt}>Choisir {plan.name}</Text>
+        <TouchableOpacity style={styles.chooseBtn} onPress={onChoose} activeOpacity={0.8}>
+          <Text style={styles.chooseBtnTxt}>CHOISIR →</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function ProfilScreen({ navigation }: Props) {
   const { preferences, reload: reloadPrefs } = usePreferences();
   const { ingredients, reload: reloadFrigo } = useFrigo();
+  const score = useScore();
 
-  useFocusEffect(
-    useCallback(() => {
-      reloadPrefs();
-      reloadFrigo();
-    }, [reloadPrefs, reloadFrigo])
-  );
+  useFocusEffect(useCallback(() => {
+    reloadPrefs();
+    reloadFrigo();
+  }, [reloadPrefs, reloadFrigo]));
 
-  // Active plan state — "free" par défaut, sans logique de paiement
   const [activePlan, setActivePlan] = useState<PlanId>('free');
 
   const handleChoose = (plan: Plan) => {
-    Alert.alert(
-      'Bientôt disponible',
-      `L'abonnement ${plan.name} sera disponible prochainement. Reste connecté !`,
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Bientôt disponible', `L'abonnement ${plan.name} sera disponible prochainement.`);
   };
 
   const displayName = preferences.firstName.trim() || 'Utilisateur';
@@ -195,111 +130,99 @@ export default function ProfilScreen({ navigation }: Props) {
     .toUpperCase()
     .slice(0, 2);
 
-  const freshCount = ingredients.length;
-  const hasAllergies = preferences.allergies.length > 0;
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" backgroundColor={COLORS.green} />
-
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnTxt}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Mon profil</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.editBtn}
-          onPress={() => navigation.navigate('Preferences')}
-        >
-          <Text style={styles.editBtnTxt}>Modifier</Text>
-        </TouchableOpacity>
-      </View>
+      <StatusBar style="dark" backgroundColor={COLORS.cream} />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Identité ──────────────────────────────────────────────────────── */}
-        <View style={styles.identityCard}>
+        <View style={styles.headerRow}>
+          <Text style={styles.kicker}>MON PROFIL</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Preferences')} style={styles.editBtn}>
+            <Text style={styles.editBtnTxt}>MODIFIER</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.title}>
+          Bonjour,{'\n'}
+          <Text style={styles.titleItalic}>{displayName}</Text>.
+        </Text>
+        <View style={styles.rule} />
+
+        {/* Identity */}
+        <View style={styles.identityRow}>
           <View style={styles.avatar}>
             <Text style={styles.avatarTxt}>{initials}</Text>
           </View>
-          <Text style={styles.displayName}>{displayName}</Text>
           <View style={styles.planChip}>
             <Text style={styles.planChipTxt}>
-              {PLANS.find((p) => p.id === activePlan)?.emoji}{' '}
-              Plan {PLANS.find((p) => p.id === activePlan)?.name}
+              PLAN {PLANS.find((p) => p.id === activePlan)?.name.toUpperCase()}
             </Text>
           </View>
         </View>
 
-        {/* ── Stats ─────────────────────────────────────────────────────────── */}
+        {/* Score tile */}
+        <View style={styles.scoreCard}>
+          <Text style={styles.scoreLabel}>SCORE ANTI-GASPI · SEMAINE {score.weekNumber}</Text>
+          <View style={styles.scoreRow}>
+            <Text style={styles.scoreValue}>{score.score}</Text>
+            <Text style={styles.scoreOutOf}>/100</Text>
+          </View>
+          <View style={styles.scoreTrack}>
+            <View style={[styles.scoreFill, { width: `${score.score}%` as any }]} />
+          </View>
+        </View>
+
+        {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{freshCount}</Text>
-            <Text style={styles.statLabel}>
-              Ingrédient{freshCount !== 1 ? 's' : ''}{'\n'}dans le frigo
-            </Text>
+          <View style={[styles.statTile, styles.statOlive]}>
+            <Text style={styles.statValue}>{ingredients.length}</Text>
+            <Text style={styles.statLabel}>FRIGO</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statTile, styles.statMustard]}>
             <Text style={styles.statValue}>{preferences.favoriteIngredients.length}</Text>
-            <Text style={styles.statLabel}>Ingrédient{preferences.favoriteIngredients.length !== 1 ? 's' : ''}{'\n'}favoris</Text>
+            <Text style={styles.statLabel}>FAVORIS</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{preferences.allergies.length}</Text>
-            <Text style={styles.statLabel}>
-              Allergie{preferences.allergies.length !== 1 ? 's' : ''}{'\n'}déclarée{preferences.allergies.length !== 1 ? 's' : ''}
+          <View style={[styles.statTile, styles.statTerra]}>
+            <Text style={[styles.statValue, { color: COLORS.cream }]}>
+              {preferences.allergies.length}
             </Text>
+            <Text style={[styles.statLabel, { color: COLORS.cream }]}>ALLERGIES</Text>
           </View>
         </View>
 
-        {/* ── Résumé préférences ────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🥗  Mes préférences</Text>
-
+        {/* Preferences summary */}
+        <Text style={styles.sectionLabel}>MES PRÉFÉRENCES</Text>
+        <View style={styles.prefCard}>
           <View style={styles.prefRow}>
-            <Text style={styles.prefLabel}>Régime</Text>
-            <View style={styles.prefChip}>
-              <Text style={styles.prefChipTxt}>{preferences.diet}</Text>
-            </View>
+            <Text style={styles.prefLabel}>RÉGIME</Text>
+            <Text style={styles.prefValue}>{preferences.diet}</Text>
           </View>
-
+          <View style={styles.prefDivider} />
           <View style={styles.prefRow}>
-            <Text style={styles.prefLabel}>Allergies</Text>
-            {hasAllergies ? (
-              <View style={styles.prefChipList}>
-                {preferences.allergies.map((a) => (
-                  <View key={a} style={[styles.prefChip, styles.prefChipDanger]}>
-                    <Text style={[styles.prefChipTxt, styles.prefChipTxtDanger]}>{a}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={styles.prefNone}>Aucune</Text>
-            )}
+            <Text style={styles.prefLabel}>ALLERGIES</Text>
+            <Text style={styles.prefValue}>
+              {preferences.allergies.length > 0 ? preferences.allergies.join(', ') : 'Aucune'}
+            </Text>
           </View>
-
           {preferences.dislikedIngredients.length > 0 && (
-            <View style={styles.prefRow}>
-              <Text style={styles.prefLabel}>Évités</Text>
-              <View style={styles.prefChipList}>
-                {preferences.dislikedIngredients.map((d) => (
-                  <View key={d} style={[styles.prefChip, styles.prefChipMuted]}>
-                    <Text style={[styles.prefChipTxt, styles.prefChipTxtMuted]}>{d}</Text>
-                  </View>
-                ))}
+            <>
+              <View style={styles.prefDivider} />
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>ÉVITÉS</Text>
+                <Text style={styles.prefValue}>{preferences.dislikedIngredients.join(', ')}</Text>
               </View>
-            </View>
+            </>
           )}
         </View>
 
-        {/* ── Abonnement ────────────────────────────────────────────────────── */}
-        <Text style={styles.plansTitle}>Abonnement</Text>
-        <Text style={styles.plansSubtitle}>Débloque tout le potentiel de FrigoAI</Text>
+        {/* Plans */}
+        <Text style={styles.sectionLabel}>ABONNEMENT</Text>
+        <Text style={styles.plansSubtitle}>
+          <Text style={styles.titleItalic}>Débloquez</Text> tout le potentiel de FrigoAI.
+        </Text>
 
         {PLANS.map((plan) => (
           <PlanCard
@@ -314,359 +237,168 @@ export default function ProfilScreen({ navigation }: Props) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.green,
-  },
+  safeArea: { flex: 1, backgroundColor: COLORS.cream },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 24, paddingBottom: 48 },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.green,
+  headerRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 8,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnTxt: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: '300',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '700',
+  kicker: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5,
+    color: COLORS.inkSoft,
   },
   editBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: COLORS.ink, borderRadius: 4,
   },
   editBtnTxt: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3, color: COLORS.ink,
   },
+  title: {
+    fontFamily: FONTS.serif, fontSize: 40, lineHeight: 44,
+    color: COLORS.ink, fontWeight: '700', letterSpacing: -1,
+  },
+  titleItalic: { fontFamily: FONTS.serifItalic, fontStyle: 'italic', color: COLORS.terracotta },
+  rule: { height: 1, backgroundColor: COLORS.ink, marginTop: 14, marginBottom: 16 },
 
-  // Scroll
-  scroll: {
-    flex: 1,
-    backgroundColor: COLORS.offWhite,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 48,
-  },
-
-  // Identity card
-  identityCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+  identityRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginBottom: 20,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+    width: 56, height: 56, borderRadius: 28,
+    borderWidth: 2, borderColor: COLORS.terracotta,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.paper,
   },
   avatarTxt: {
-    color: COLORS.white,
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  displayName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    marginBottom: 10,
+    fontFamily: FONTS.serif, fontSize: 22, color: COLORS.ink, fontWeight: '700',
   },
   planChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: COLORS.greenPale,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 4, backgroundColor: COLORS.mustardBg,
+    borderWidth: 1, borderColor: COLORS.mustardSoft,
   },
   planChipTxt: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.greenMid,
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
+    color: COLORS.ink,
   },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
+  scoreCard: {
+    backgroundColor: COLORS.paper, borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 16, marginBottom: 12,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+  scoreLabel: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.4, color: COLORS.olive, marginBottom: 6,
   },
+  scoreRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 10 },
+  scoreValue: {
+    fontFamily: FONTS.mono, fontSize: 52, fontWeight: '700',
+    color: COLORS.ink, letterSpacing: -2,
+  },
+  scoreOutOf: {
+    fontFamily: FONTS.mono, fontSize: 18, color: COLORS.muted, marginLeft: 4,
+  },
+  scoreTrack: { height: 5, backgroundColor: COLORS.creamDeep, borderRadius: 3, overflow: 'hidden' },
+  scoreFill: { height: 5, backgroundColor: COLORS.olive, borderRadius: 3 },
+
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  statTile: { flex: 1, borderRadius: 4, padding: 12, borderWidth: 1, minHeight: 70 },
+  statOlive: { backgroundColor: COLORS.oliveBg, borderColor: COLORS.oliveSoft },
+  statMustard: { backgroundColor: COLORS.mustardBg, borderColor: COLORS.mustardSoft },
+  statTerra: { backgroundColor: COLORS.terracotta, borderColor: COLORS.terracotta },
   statValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: COLORS.greenMid,
-    marginBottom: 4,
+    fontFamily: FONTS.serif, fontSize: 26, fontWeight: '700',
+    color: COLORS.ink, letterSpacing: -1,
   },
   statLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    lineHeight: 15,
-    fontWeight: '500',
+    fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.3, color: COLORS.olive, marginTop: 4,
   },
 
-  // Preferences section
-  section: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+  sectionLabel: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5,
+    color: COLORS.olive, marginBottom: 6, marginTop: 8,
   },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    marginBottom: 14,
+  prefCard: {
+    backgroundColor: COLORS.paper, borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 16, marginBottom: 24,
   },
-  prefRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 10,
-  },
+  prefRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   prefLabel: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-    width: 68,
-    paddingTop: 4,
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
+    color: COLORS.muted, width: 80, paddingTop: 2,
   },
-  prefChipList: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  prefValue: {
+    flex: 1, fontFamily: FONTS.serif, fontSize: 15, color: COLORS.ink,
+    textTransform: 'capitalize',
   },
-  prefChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: COLORS.greenPale,
-  },
-  prefChipTxt: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.greenMid,
-  },
-  prefChipDanger: {
-    backgroundColor: COLORS.dangerBg,
-  },
-  prefChipTxtDanger: {
-    color: COLORS.danger,
-  },
-  prefChipMuted: {
-    backgroundColor: '#F0F4F0',
-  },
-  prefChipTxtMuted: {
-    color: COLORS.textMuted,
-  },
-  prefNone: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontStyle: 'italic',
-    paddingTop: 4,
+  prefDivider: { height: 1, backgroundColor: COLORS.rule, marginVertical: 10 },
+
+  plansSubtitle: {
+    fontFamily: FONTS.serif, fontSize: 20,
+    color: COLORS.ink, marginBottom: 14,
   },
 
-  // Plans
-  plansTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.textDark,
-    marginBottom: 4,
-  },
-  plansSubtitle: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginBottom: 14,
-  },
   planCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    backgroundColor: COLORS.paper, borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 18, marginBottom: 12,
     position: 'relative',
   },
   planCardActive: {
-    backgroundColor: COLORS.green,
-    borderColor: COLORS.green,
-  },
-  planCardHighlighted: {
-    borderColor: COLORS.gold,
-    borderWidth: 2,
+    borderColor: COLORS.terracotta, borderWidth: 2,
+    backgroundColor: COLORS.terracottaBg,
   },
   popularBadge: {
-    position: 'absolute',
-    top: -11,
-    alignSelf: 'center',
-    backgroundColor: COLORS.gold,
-    paddingHorizontal: 12,
-    paddingVertical: 3,
-    borderRadius: 20,
+    position: 'absolute', top: -9, left: 16,
+    backgroundColor: COLORS.mustard,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 3,
   },
   popularBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.white,
+    fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.4,
+    color: COLORS.ink, fontWeight: '700',
   },
-  planHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-    gap: 12,
+  planKicker: {
+    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 1.5,
+    color: COLORS.inkSoft, marginBottom: 6,
   },
-  planEmoji: {
-    fontSize: 28,
+  planKickerActive: { color: COLORS.terracotta },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
+  price: {
+    fontFamily: FONTS.serif, fontSize: 32, fontWeight: '700',
+    color: COLORS.ink, letterSpacing: -1,
   },
-  planHeaderText: {
-    flex: 1,
+  priceActive: { color: COLORS.terracotta },
+  period: {
+    fontFamily: FONTS.serifItalic, fontStyle: 'italic',
+    fontSize: 13, color: COLORS.muted, marginLeft: 4,
   },
-  planName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textDark,
-  },
-  planNameActive: {
-    color: COLORS.white,
-  },
-  planPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  planPrice: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.greenMid,
-  },
-  planPriceActive: {
-    color: COLORS.greenPale,
-  },
-  planPeriod: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-  },
-  planPeriodActive: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-  activeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  activeBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  featureList: {
-    gap: 8,
-    marginBottom: 16,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  periodActive: { color: COLORS.inkSoft },
+  featureList: { gap: 6, marginBottom: 14 },
+  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   featureCheck: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.greenLight,
-    width: 16,
+    fontFamily: FONTS.mono, fontSize: 13, color: COLORS.terracotta, width: 12,
   },
-  featureCheckActive: {
-    color: COLORS.greenPale,
+  featureCheckActive: { color: COLORS.terracotta },
+  featureTxt: { flex: 1, fontFamily: FONTS.serif, fontSize: 14, color: COLORS.inkSoft },
+  featureTxtActive: { color: COLORS.ink },
+  activeBtn: {
+    paddingVertical: 12, borderRadius: 4,
+    backgroundColor: COLORS.terracotta, alignItems: 'center',
   },
-  featureTxt: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    flex: 1,
+  activeBtnTxt: {
+    color: COLORS.cream, fontFamily: FONTS.mono,
+    fontSize: 11, letterSpacing: 1.5, fontWeight: '700',
   },
-  featureTxtActive: {
-    color: 'rgba(255,255,255,0.85)',
+  chooseBtn: {
+    paddingVertical: 12, borderRadius: 4,
+    borderWidth: 1, borderColor: COLORS.ink, alignItems: 'center',
   },
-  planActiveBtn: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-  },
-  planActiveBtnTxt: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  planChooseBtn: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: COLORS.green,
-    alignItems: 'center',
-  },
-  planChooseBtnTxt: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '700',
+  chooseBtnTxt: {
+    color: COLORS.ink, fontFamily: FONTS.mono,
+    fontSize: 11, letterSpacing: 1.5, fontWeight: '700',
   },
 });

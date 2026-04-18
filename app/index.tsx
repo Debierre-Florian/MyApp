@@ -17,43 +17,40 @@ import { CameraView } from 'expo-camera';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { useFrigo } from '../hooks/useFrigo';
+import { usePreferences } from '../hooks/usePreferences';
+import { useScore } from '../hooks/useScore';
 import { initNotifications } from '../services/notifications';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
 import { RootStackParamList, TabParamList } from './navigator';
+import { COLORS, FONTS } from '../constants/theme';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Home'>,
   NativeStackScreenProps<RootStackParamList>
 >;
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const COLORS = {
-  green: '#1B5E20',
-  greenMid: '#2E7D32',
-  greenLight: '#43A047',
-  greenPale: '#C8E6C9',
-  white: '#FFFFFF',
-  offWhite: '#F9FBF9',
-  textDark: '#1A1A1A',
-  textMuted: '#6B7F6B',
-  overlay: 'rgba(0,0,0,0.55)',
-  cardBorder: '#E8F0E8',
-};
+const DAYS = ['DIMANCHE', 'LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'];
+
+function daysOld(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
+}
 
 export default function HomeScreen({ navigation }: Props) {
   const { cameraRef, permission, cameraState, capturedPhoto, openCamera, closeCamera, takePicture, retake } =
     useCamera();
-  const { checkExpiringIngredients } = useFrigo();
+  const { ingredients, checkExpiringIngredients } = useFrigo();
+  const { preferences } = usePreferences();
+  const score = useScore();
 
   useEffect(() => {
     initNotifications(checkExpiringIngredients());
   }, [checkExpiringIngredients]);
 
-  // Masque le tab bar quand la caméra est active
   useEffect(() => {
     if (cameraState === 'active' || cameraState === 'captured') {
       navigation.setOptions({ tabBarStyle: { display: 'none' } });
@@ -82,16 +79,12 @@ export default function HomeScreen({ navigation }: Props) {
     setIngredientText('');
   };
 
-  console.log('[HomeScreen] render — cameraState:', cameraState, '| capturedPhoto:', capturedPhoto?.uri ?? null);
-
   // ─── Camera active ────────────────────────────────────────────────────────
   if (cameraState === 'active') {
     return (
       <View style={styles.cameraContainer}>
         <StatusBar style="light" />
         <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
-
-        {/* Top bar */}
         <SafeAreaView style={styles.cameraTopBar}>
           <TouchableOpacity onPress={closeCamera} style={styles.cameraCloseBtn}>
             <Text style={styles.cameraCloseTxt}>✕</Text>
@@ -99,8 +92,6 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.cameraHint}>Cadrez votre frigo</Text>
           <View style={{ width: 44 }} />
         </SafeAreaView>
-
-        {/* Viewfinder frame */}
         <View style={styles.viewfinderWrapper}>
           <View style={styles.viewfinder}>
             <View style={[styles.corner, styles.cornerTL]} />
@@ -109,15 +100,11 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={[styles.corner, styles.cornerBR]} />
           </View>
         </View>
-
-        {/* Shutter */}
         <SafeAreaView style={styles.shutterBar}>
           <TouchableOpacity onPress={takePicture} style={styles.shutterBtn}>
             <View style={styles.shutterInner} />
           </TouchableOpacity>
         </SafeAreaView>
-
-        {/* Gallery FAB */}
         <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryFab}>
           <Text style={styles.galleryFabIcon}>🖼️</Text>
         </TouchableOpacity>
@@ -125,30 +112,23 @@ export default function HomeScreen({ navigation }: Props) {
     );
   }
 
-  // ─── Photo captured ───────────────────────────────────────────────────────
   if (cameraState === 'captured' && capturedPhoto) {
     return (
       <View style={styles.cameraContainer}>
         <StatusBar style="light" />
         <Image source={{ uri: capturedPhoto.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-
         <SafeAreaView style={styles.captureOverlay}>
-          <Text style={styles.captureTitle}>Photo prise !</Text>
-          <Text style={styles.captureSubtitle}>Voulez-vous analyser ce frigo ?</Text>
-
+          <Text style={styles.captureTitle}>Photo prise.</Text>
+          <Text style={styles.captureSubtitle}>Analyser ce frigo ?</Text>
           <View style={styles.captureActions}>
             <TouchableOpacity onPress={retake} style={styles.captureSecondaryBtn}>
               <Text style={styles.captureSecondaryTxt}>Reprendre</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
-                console.log('[HomeScreen] Analyser pressed — capturedPhoto:', capturedPhoto?.uri ?? null);
                 const uri = capturedPhoto.uri;
-                console.log('[HomeScreen] uri extracted:', uri);
                 closeCamera();
-                console.log('[HomeScreen] closeCamera() called, navigating to Analyse...');
                 navigation.navigate('Analyse', { photoUri: uri });
-                console.log('[HomeScreen] navigation.navigate() called');
               }}
               style={styles.capturePrimaryBtn}
             >
@@ -160,133 +140,168 @@ export default function HomeScreen({ navigation }: Props) {
     );
   }
 
-  // ─── Permission denied ────────────────────────────────────────────────────
   if (permission && !permission.granted && !permission.canAskAgain) {
     return (
       <SafeAreaView style={styles.permissionScreen}>
-        <StatusBar style="light" />
-        <Text style={styles.permissionIcon}>📷</Text>
+        <StatusBar style="dark" />
+        <Text style={styles.permissionIcon}>◉</Text>
         <Text style={styles.permissionTitle}>Accès caméra refusé</Text>
         <Text style={styles.permissionText}>
-          Autorisez l'accès à la caméra dans les réglages de votre appareil pour prendre votre frigo en photo.
+          Autorisez l'accès à la caméra dans les réglages de votre appareil.
         </Text>
       </SafeAreaView>
     );
   }
 
-  // ─── Home screen ──────────────────────────────────────────────────────────
+  // ─── Home ─────────────────────────────────────────────────────────────────
+  const now = new Date();
+  const dayLabel = DAYS[now.getDay()];
+  const urgent = ingredients
+    .map((i) => ({ ...i, days: daysOld(i.addedAt) }))
+    .filter((i) => i.days >= 5)
+    .sort((a, b) => b.days - a.days)
+    .slice(0, 3);
+  const freshCount = ingredients.filter((i) => daysOld(i.addedAt) < 5).length;
+
+  const firstInitial =
+    (preferences.firstName.trim()[0] || 'F').toUpperCase();
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" backgroundColor={COLORS.green} />
+      <StatusBar style="dark" backgroundColor={COLORS.cream} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.settingsBtn}
-          onPress={() => navigation.navigate('Preferences')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.settingsBtnTxt}>⚙️</Text>
-        </TouchableOpacity>
-        <View style={styles.logoWrapper}>
-          <Text style={styles.logoEmoji}>🥦</Text>
-        </View>
-        <Text style={styles.appName}>FrigoAI</Text>
-        <Text style={styles.appTagline}>Cuisine ce que tu as</Text>
-      </View>
-
-      {/* Main content */}
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Hero card */}
-        <View style={styles.heroCard}>
-          <Text style={styles.heroTitle}>Qu'est-ce qu'il y a dans ton frigo ?</Text>
-          <Text style={styles.heroSubtitle}>
-            Prends une photo ou liste tes ingrédients, FrigoAI te propose des recettes adaptées.
+        {/* ── Top bar ──────────────────────────────────────────────────── */}
+        <View style={styles.topBar}>
+          <Text style={styles.topBarKicker}>
+            № {score.weekNumber} · {dayLabel}
+          </Text>
+          <TouchableOpacity
+            style={styles.avatarBtn}
+            onPress={() => navigation.navigate('Preferences')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.avatarTxt}>{firstInitial}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Masthead ─────────────────────────────────────────────────── */}
+        <Text style={styles.kicker}>— journal du frigo —</Text>
+        <Text style={styles.masthead}>
+          Larder<Text style={styles.mastheadDot}>.</Text>
+        </Text>
+        <View style={styles.mastheadRule} />
+        <View style={styles.mastheadMeta}>
+          <Text style={styles.mastheadMetaTxt}>
+            {ingredients.length} PRODUIT{ingredients.length !== 1 ? 'S' : ''} · FRAIS
+          </Text>
+          <Text style={styles.mastheadMetaTxt}>
+            {urgent.length} À UTILISER
           </Text>
         </View>
 
-        {/* Primary CTA — camera */}
+        {/* ── Score card ───────────────────────────────────────────────── */}
+        <View style={styles.scoreCard}>
+          <Text style={styles.scoreLabel}>
+            SCORE ANTI-GASPI · SEMAINE {score.weekNumber}
+          </Text>
+          <View style={styles.scoreRow}>
+            <Text style={styles.scoreValue}>{score.score}</Text>
+            <Text style={styles.scoreOutOf}>/100</Text>
+          </View>
+          <View style={styles.scoreTrack}>
+            <View style={[styles.scoreFill, { width: `${score.score}%` as any }]} />
+          </View>
+        </View>
+
+        {/* ── Twin tiles ───────────────────────────────────────────────── */}
+        <View style={styles.tilesRow}>
+          <View style={[styles.tile, styles.tileOlive]}>
+            <Text style={styles.tileValue}>
+              {score.savedKg.toFixed(1)}
+              <Text style={styles.tileUnit}>kg</Text>
+            </Text>
+            <Text style={styles.tileLabel}>SAUVÉS · 7 JOURS</Text>
+          </View>
+          <View style={[styles.tile, styles.tileTerra]}>
+            <Text style={[styles.tileValue, styles.tileValueLight]}>
+              {score.savedEuros.toFixed(0)}
+              <Text style={styles.tileUnit}>€</Text>
+            </Text>
+            <Text style={[styles.tileLabel, styles.tileLabelLight]}>ÉCONOMISÉS</Text>
+          </View>
+        </View>
+
+        {/* ── Primary CTA ──────────────────────────────────────────────── */}
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={openCamera}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
         >
-          <View style={styles.primaryBtnIcon}>
-            <Text style={styles.primaryBtnEmoji}>📸</Text>
+          <View style={styles.primaryBtnCircle}>
+            <Text style={styles.primaryBtnCircleTxt}>◉</Text>
           </View>
-          <View style={styles.primaryBtnText}>
-            <Text style={styles.primaryBtnTitle}>Photographier mon frigo</Text>
-            <Text style={styles.primaryBtnSub}>Analyse automatique des ingrédients</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.primaryBtnTitle}>PRENDRE LA PHOTO</Text>
+            <Text style={styles.primaryBtnSub}>analyse · 2 secondes</Text>
           </View>
-          <Text style={styles.primaryBtnArrow}>›</Text>
+          <Text style={styles.primaryBtnArrow}>→</Text>
         </TouchableOpacity>
 
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ou</Text>
-          <View style={styles.dividerLine} />
+        {/* ── Secondary CTAs ───────────────────────────────────────────── */}
+        <View style={styles.secondaryRow}>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => setManualModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.secondaryBtnTxt}>SAISIR</Text>
+            <Text style={styles.secondaryBtnSub}>à la main</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => navigation.navigate('Ticket')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.secondaryBtnTxt}>TICKET</Text>
+            <Text style={styles.secondaryBtnSub}>de caisse</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Secondary CTA — manual */}
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={() => setManualModalVisible(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.secondaryBtnEmoji}>✏️</Text>
-          <Text style={styles.secondaryBtnTxt}>Saisir les ingrédients manuellement</Text>
-        </TouchableOpacity>
-
-        {/* Frigo CTA */}
-        <TouchableOpacity
-          style={styles.frigoBtn}
-          onPress={() => navigation.navigate('Frigo')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.frigoBtnEmoji}>🧊</Text>
-          <Text style={styles.frigoBtnTxt}>Voir le contenu de mon frigo</Text>
-          <Text style={styles.frigoBtnArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Profil CTA */}
-        <TouchableOpacity
-          style={styles.frigoBtn}
-          onPress={() => navigation.navigate('Profil')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.frigoBtnEmoji}>👤</Text>
-          <Text style={styles.frigoBtnTxt}>Mon profil</Text>
-          <Text style={styles.frigoBtnArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Ticket CTA */}
-        <TouchableOpacity
-          style={styles.frigoBtn}
-          onPress={() => navigation.navigate('Ticket')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.frigoBtnEmoji}>🧾</Text>
-          <Text style={styles.frigoBtnTxt}>Scanner un ticket de caisse</Text>
-          <Text style={styles.frigoBtnArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Info tiles */}
-        <View style={styles.tilesRow}>
-          {[
-            { icon: '🍽️', label: 'Recettes\npersonnalisées' },
-            { icon: '⚡', label: 'Analyse\ninstantanée' },
-            { icon: '♻️', label: 'Zéro\ngaspillage' },
-          ].map((tile) => (
-            <View key={tile.label} style={styles.tile}>
-              <Text style={styles.tileIcon}>{tile.icon}</Text>
-              <Text style={styles.tileLabel}>{tile.label}</Text>
+        {/* ── À utiliser d'abord ───────────────────────────────────────── */}
+        {urgent.length > 0 && (
+          <>
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionDot}>●</Text>
+              <Text style={styles.sectionLabel}>À UTILISER D'ABORD</Text>
             </View>
-          ))}
-        </View>
+            <Text style={styles.sectionTitle}>
+              {urgent.length} ingrédient{urgent.length > 1 ? 's' : ''},{' '}
+              <Text style={styles.sectionTitleItalic}>cette semaine</Text>
+            </Text>
+            <View style={styles.chipsRow}>
+              {urgent.map((i) => (
+                <View key={i.id} style={styles.urgentChip}>
+                  <Text style={styles.urgentChipName}>{i.name}</Text>
+                  <Text style={styles.urgentChipDays}>{i.days}j</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* ── Frigo CTA ────────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => navigation.navigate('Frigo')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.linkTxt}>DANS LE FRIGO · {ingredients.length} ITEMS</Text>
+          <Text style={styles.linkArrow}>→</Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* Manual input modal */}
+      {/* ── Manual modal ─────────────────────────────────────────────── */}
       <Modal
         visible={manualModalVisible}
         animationType="slide"
@@ -299,15 +314,15 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
+            <Text style={styles.modalKicker}>SAISIR À LA MAIN</Text>
             <Text style={styles.modalTitle}>Mes ingrédients</Text>
             <Text style={styles.modalSubtitle}>
-              Liste tes ingrédients séparés par des virgules ou à la ligne.
+              Séparés par des virgules ou à la ligne.
             </Text>
-
             <TextInput
               style={styles.textInput}
-              placeholder="Ex: carottes, poulet, courgettes, riz..."
-              placeholderTextColor={COLORS.textMuted}
+              placeholder="carottes, poulet, courgettes..."
+              placeholderTextColor={COLORS.muted}
               multiline
               numberOfLines={5}
               value={ingredientText}
@@ -315,7 +330,6 @@ export default function HomeScreen({ navigation }: Props) {
               textAlignVertical="top"
               autoFocus
             />
-
             <View style={styles.modalActions}>
               <TouchableOpacity
                 onPress={() => {
@@ -326,13 +340,12 @@ export default function HomeScreen({ navigation }: Props) {
               >
                 <Text style={styles.modalCancelTxt}>Annuler</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={handleManualSubmit}
                 style={[styles.modalSubmitBtn, !ingredientText.trim() && styles.modalSubmitDisabled]}
                 disabled={!ingredientText.trim()}
               >
-                <Text style={styles.modalSubmitTxt}>Trouver des recettes</Text>
+                <Text style={styles.modalSubmitTxt}>Trouver des recettes →</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -346,249 +359,318 @@ const CORNER_SIZE = 24;
 const CORNER_BORDER = 3;
 
 const styles = StyleSheet.create({
-  // ── Layout ─────────────────────────────────────────────────────────────────
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.green,
-  },
+  safeArea: { flex: 1, backgroundColor: COLORS.cream },
   body: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    backgroundColor: COLORS.offWhite,
+    paddingHorizontal: 24,
+    paddingBottom: 48,
+    paddingTop: 8,
+    backgroundColor: COLORS.cream,
     flexGrow: 1,
   },
 
-  // ── Header ─────────────────────────────────────────────────────────────────
-  header: {
-    backgroundColor: COLORS.green,
+  // Top bar
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 28,
-    position: 'relative',
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  settingsBtn: {
-    position: 'absolute',
-    top: 20,
-    right: 16,
-    zIndex: 1,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+  topBarKicker: {
+    fontFamily: FONTS.mono,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: COLORS.inkSoft,
   },
-  settingsBtnTxt: {
-    fontSize: 22,
-  },
-  logoWrapper: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.white,
+  avatarBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    borderColor: COLORS.ink,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
   },
-  logoEmoji: {
-    fontSize: 36,
-  },
-  appName: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: 1,
-  },
-  appTagline: {
-    fontSize: 13,
-    color: COLORS.greenPale,
-    marginTop: 4,
-    letterSpacing: 0.4,
+  avatarTxt: {
+    fontFamily: FONTS.serif,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
   },
 
-  // ── Hero ────────────────────────────────────────────────────────────────────
-  heroCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 24,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 3,
+  // Masthead
+  kicker: {
+    fontFamily: FONTS.serifItalic,
+    fontStyle: 'italic',
+    color: COLORS.terracotta,
+    fontSize: 15,
+    marginBottom: 4,
   },
-  heroTitle: {
-    fontSize: 20,
+  masthead: {
+    fontFamily: FONTS.serif,
+    fontSize: 72,
+    lineHeight: 76,
+    color: COLORS.ink,
     fontWeight: '700',
-    color: COLORS.textDark,
+    letterSpacing: -2,
+  },
+  mastheadDot: { color: COLORS.terracotta },
+  mastheadRule: {
+    height: 1,
+    backgroundColor: COLORS.ink,
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  mastheadMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  mastheadMetaTxt: {
+    fontFamily: FONTS.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: COLORS.inkSoft,
+  },
+
+  // Score card
+  scoreCard: {
+    backgroundColor: COLORS.paper,
+    borderWidth: 1,
+    borderColor: COLORS.rule,
+    borderRadius: 4,
+    padding: 18,
+    marginBottom: 12,
+  },
+  scoreLabel: {
+    fontFamily: FONTS.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: COLORS.olive,
     marginBottom: 8,
   },
-  heroSubtitle: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    lineHeight: 21,
-  },
-
-  // ── Primary button ─────────────────────────────────────────────────────────
-  primaryBtn: {
+  scoreRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.green,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 20,
-    shadowColor: COLORS.green,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    alignItems: 'baseline',
+    marginBottom: 12,
   },
-  primaryBtnIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: COLORS.greenMid,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  primaryBtnEmoji: {
-    fontSize: 26,
-  },
-  primaryBtnText: {
-    flex: 1,
-  },
-  primaryBtnTitle: {
-    fontSize: 16,
+  scoreValue: {
+    fontFamily: FONTS.mono,
+    fontSize: 68,
+    lineHeight: 72,
+    color: COLORS.ink,
     fontWeight: '700',
-    color: COLORS.white,
-    marginBottom: 3,
+    letterSpacing: -2,
   },
-  primaryBtnSub: {
-    fontSize: 12,
-    color: COLORS.greenPale,
+  scoreOutOf: {
+    fontFamily: FONTS.mono,
+    fontSize: 24,
+    color: COLORS.muted,
+    marginLeft: 4,
   },
-  primaryBtnArrow: {
-    fontSize: 28,
-    color: COLORS.greenLight,
-    fontWeight: '300',
+  scoreTrack: {
+    height: 6,
+    backgroundColor: COLORS.creamDeep,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
-
-  // ── Divider ─────────────────────────────────────────────────────────────────
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#D8E8D8',
-  },
-  dividerText: {
-    marginHorizontal: 12,
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: '500',
+  scoreFill: {
+    height: 6,
+    backgroundColor: COLORS.olive,
+    borderRadius: 3,
   },
 
-  // ── Frigo button ─────────────────────────────────────────────────────────────
-  frigoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  frigoBtnEmoji: {
-    fontSize: 22,
-  },
-  frigoBtnTxt: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textDark,
-  },
-  frigoBtnArrow: {
-    fontSize: 22,
-    color: COLORS.textMuted,
-    fontWeight: '300',
-  },
-
-  // ── Secondary button ────────────────────────────────────────────────────────
-  secondaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 28,
-    borderWidth: 1.5,
-    borderColor: COLORS.greenLight,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  secondaryBtnEmoji: {
-    fontSize: 22,
-  },
-  secondaryBtnTxt: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.greenMid,
-  },
-
-  // ── Info tiles ───────────────────────────────────────────────────────────────
+  // Tiles
   tilesRow: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: 20,
   },
   tile: {
     flex: 1,
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 4,
+    padding: 16,
+    borderWidth: 1,
+    minHeight: 96,
+    justifyContent: 'space-between',
   },
-  tileIcon: {
-    fontSize: 24,
-    marginBottom: 6,
+  tileOlive: {
+    backgroundColor: COLORS.oliveBg,
+    borderColor: COLORS.oliveSoft,
+  },
+  tileTerra: {
+    backgroundColor: COLORS.terracotta,
+    borderColor: COLORS.terracotta,
+  },
+  tileValue: {
+    fontFamily: FONTS.serif,
+    fontSize: 36,
+    fontWeight: '700',
+    color: COLORS.ink,
+    letterSpacing: -1,
+  },
+  tileValueLight: { color: COLORS.cream },
+  tileUnit: {
+    fontFamily: FONTS.mono,
+    fontSize: 14,
+    fontWeight: '400',
   },
   tileLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    lineHeight: 16,
-    fontWeight: '500',
+    fontFamily: FONTS.mono,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    color: COLORS.olive,
+  },
+  tileLabelLight: { color: COLORS.cream, opacity: 0.9 },
+
+  // Primary CTA
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.ink,
+    borderRadius: 4,
+    padding: 18,
+    marginBottom: 10,
+    gap: 14,
+  },
+  primaryBtnCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.mustard,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnCircleTxt: {
+    fontSize: 22,
+    color: COLORS.ink,
+  },
+  primaryBtnTitle: {
+    fontFamily: FONTS.sans,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: COLORS.cream,
+  },
+  primaryBtnSub: {
+    fontFamily: FONTS.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: COLORS.muted,
+    marginTop: 2,
+  },
+  primaryBtnArrow: {
+    fontSize: 20,
+    color: COLORS.cream,
   },
 
-  // ── Camera ──────────────────────────────────────────────────────────────────
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: '#000',
+  // Secondary
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 28,
   },
+  secondaryBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.ink,
+    borderRadius: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.cream,
+  },
+  secondaryBtnTxt: {
+    fontFamily: FONTS.sans,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: COLORS.ink,
+  },
+  secondaryBtnSub: {
+    fontFamily: FONTS.serifItalic,
+    fontStyle: 'italic',
+    fontSize: 12,
+    color: COLORS.inkSoft,
+    marginTop: 2,
+  },
+
+  // Section
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  sectionDot: {
+    color: COLORS.terracotta,
+    fontSize: 10,
+  },
+  sectionLabel: {
+    fontFamily: FONTS.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: COLORS.inkSoft,
+  },
+  sectionTitle: {
+    fontFamily: FONTS.serif,
+    fontSize: 22,
+    color: COLORS.ink,
+    marginBottom: 12,
+  },
+  sectionTitleItalic: {
+    fontFamily: FONTS.serifItalic,
+    fontStyle: 'italic',
+    color: COLORS.terracotta,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 24,
+    flexWrap: 'wrap',
+  },
+  urgentChip: {
+    flex: 1,
+    minWidth: 90,
+    borderWidth: 1,
+    borderColor: COLORS.rule,
+    backgroundColor: COLORS.paper,
+    borderRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  urgentChipName: {
+    fontFamily: FONTS.serif,
+    fontSize: 14,
+    color: COLORS.ink,
+    textTransform: 'capitalize',
+  },
+  urgentChipDays: {
+    fontFamily: FONTS.mono,
+    fontSize: 10,
+    color: COLORS.terracotta,
+    marginTop: 2,
+    letterSpacing: 0.8,
+  },
+
+  // Link row
+  linkRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.rule,
+  },
+  linkTxt: {
+    fontFamily: FONTS.mono,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: COLORS.ink,
+  },
+  linkArrow: { fontSize: 16, color: COLORS.ink },
+
+  // ─── Camera (shared) ──────────────────────────────────────────────
+  cameraContainer: { flex: 1, backgroundColor: '#000' },
   cameraTopBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -605,256 +687,149 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cameraCloseTxt: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  cameraHint: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-
-  // Viewfinder
-  viewfinderWrapper: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewfinder: {
-    width: width * 0.78,
-    height: width * 0.78 * 1.1,
-    position: 'relative',
-  },
-  corner: {
-    position: 'absolute',
-    width: CORNER_SIZE,
-    height: CORNER_SIZE,
-  },
+  cameraCloseTxt: { color: COLORS.white, fontSize: 18, fontWeight: '600' },
+  cameraHint: { color: COLORS.white, fontSize: 15, fontWeight: '600' },
+  viewfinderWrapper: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  viewfinder: { width: width * 0.78, height: width * 0.78 * 1.1, position: 'relative' },
+  corner: { position: 'absolute', width: CORNER_SIZE, height: CORNER_SIZE },
   cornerTL: {
-    top: 0,
-    left: 0,
+    top: 0, left: 0,
     borderTopWidth: CORNER_BORDER,
     borderLeftWidth: CORNER_BORDER,
     borderColor: COLORS.white,
     borderTopLeftRadius: 6,
   },
   cornerTR: {
-    top: 0,
-    right: 0,
+    top: 0, right: 0,
     borderTopWidth: CORNER_BORDER,
     borderRightWidth: CORNER_BORDER,
     borderColor: COLORS.white,
     borderTopRightRadius: 6,
   },
   cornerBL: {
-    bottom: 0,
-    left: 0,
+    bottom: 0, left: 0,
     borderBottomWidth: CORNER_BORDER,
     borderLeftWidth: CORNER_BORDER,
     borderColor: COLORS.white,
     borderBottomLeftRadius: 6,
   },
   cornerBR: {
-    bottom: 0,
-    right: 0,
+    bottom: 0, right: 0,
     borderBottomWidth: CORNER_BORDER,
     borderRightWidth: CORNER_BORDER,
     borderColor: COLORS.white,
     borderBottomRightRadius: 6,
   },
-
-  // Shutter
-  shutterBar: {
-    alignItems: 'center',
-    paddingBottom: 36,
-    zIndex: 10,
-  },
+  shutterBar: { alignItems: 'center', paddingBottom: 36, zIndex: 10 },
   galleryFab: {
     position: 'absolute',
-    bottom: 52,
-    right: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    bottom: 52, right: 16,
+    width: 48, height: 48, borderRadius: 24,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     zIndex: 20,
   },
-  galleryFabIcon: {
-    fontSize: 22,
-  },
+  galleryFabIcon: { fontSize: 22 },
   shutterBtn: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+    width: 74, height: 74, borderRadius: 37,
     backgroundColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.white,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3, borderColor: COLORS.white,
   },
-  shutterInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.white,
-  },
+  shutterInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.white },
 
-  // ── Capture review ──────────────────────────────────────────────────────────
+  // Capture review
   captureOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 24,
+    flex: 1, justifyContent: 'flex-end', padding: 24,
     backgroundColor: COLORS.overlay,
   },
   captureTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: 8,
+    fontFamily: FONTS.serif,
+    fontSize: 32, color: COLORS.cream, textAlign: 'center', marginBottom: 6,
   },
   captureSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-    marginBottom: 28,
+    fontFamily: FONTS.serifItalic, fontStyle: 'italic',
+    fontSize: 15, color: 'rgba(245,240,232,0.8)', textAlign: 'center', marginBottom: 28,
   },
-  captureActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  captureActions: { flexDirection: 'row', gap: 12 },
   captureSecondaryBtn: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    flex: 1, paddingVertical: 16, borderRadius: 4,
+    backgroundColor: 'rgba(245,240,232,0.15)',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 1, borderColor: 'rgba(245,240,232,0.4)',
   },
-  captureSecondaryTxt: {
-    color: COLORS.white,
-    fontWeight: '600',
-    fontSize: 15,
-  },
+  captureSecondaryTxt: { color: COLORS.cream, fontWeight: '700', fontSize: 13, letterSpacing: 1 },
   capturePrimaryBtn: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 14,
-    backgroundColor: COLORS.green,
-    alignItems: 'center',
+    flex: 1, paddingVertical: 16, borderRadius: 4,
+    backgroundColor: COLORS.terracotta, alignItems: 'center',
   },
-  capturePrimaryTxt: {
-    color: COLORS.white,
-    fontWeight: '700',
-    fontSize: 15,
-  },
+  capturePrimaryTxt: { color: COLORS.cream, fontWeight: '700', fontSize: 13, letterSpacing: 1 },
 
-  // ── Permission denied ────────────────────────────────────────────────────────
+  // Permission
   permissionScreen: {
-    flex: 1,
-    backgroundColor: COLORS.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
+    flex: 1, backgroundColor: COLORS.cream,
+    alignItems: 'center', justifyContent: 'center', padding: 32,
   },
-  permissionIcon: {
-    fontSize: 56,
-    marginBottom: 20,
-  },
+  permissionIcon: { fontSize: 56, color: COLORS.terracotta, marginBottom: 16 },
   permissionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.white,
-    marginBottom: 12,
-    textAlign: 'center',
+    fontFamily: FONTS.serif,
+    fontSize: 24, color: COLORS.ink, marginBottom: 12, textAlign: 'center',
   },
   permissionText: {
-    fontSize: 14,
-    color: COLORS.greenPale,
-    textAlign: 'center',
-    lineHeight: 22,
+    fontFamily: FONTS.serif,
+    fontSize: 15, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22,
   },
 
-  // ── Manual modal ─────────────────────────────────────────────────────────────
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: COLORS.overlay,
-  },
+  // Modal
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: COLORS.overlay },
   modalSheet: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    backgroundColor: COLORS.cream,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D0D5D0',
-    alignSelf: 'center',
-    marginBottom: 20,
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: COLORS.rule,
+    alignSelf: 'center', marginBottom: 20,
+  },
+  modalKicker: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5,
+    color: COLORS.terracotta, marginBottom: 4,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    marginBottom: 6,
+    fontFamily: FONTS.serif, fontSize: 28,
+    color: COLORS.ink, marginBottom: 6,
   },
   modalSubtitle: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginBottom: 16,
-    lineHeight: 19,
+    fontFamily: FONTS.serifItalic, fontStyle: 'italic',
+    fontSize: 14, color: COLORS.inkSoft, marginBottom: 16,
   },
   textInput: {
-    borderWidth: 1.5,
-    borderColor: COLORS.greenLight,
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 15,
-    color: COLORS.textDark,
-    backgroundColor: COLORS.offWhite,
-    minHeight: 110,
-    marginBottom: 20,
+    borderWidth: 1, borderColor: COLORS.rule, borderRadius: 4,
+    padding: 14, fontSize: 15, color: COLORS.ink,
+    backgroundColor: COLORS.paper,
+    minHeight: 110, marginBottom: 20,
+    fontFamily: FONTS.serif,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  modalActions: { flexDirection: 'row', gap: 12 },
   modalCancelBtn: {
-    flex: 1,
-    paddingVertical: 15,
-    borderRadius: 14,
+    flex: 1, paddingVertical: 15, borderRadius: 4,
     alignItems: 'center',
-    backgroundColor: '#F0F4F0',
+    borderWidth: 1, borderColor: COLORS.rule,
   },
   modalCancelTxt: {
-    color: COLORS.textMuted,
-    fontWeight: '600',
-    fontSize: 15,
+    color: COLORS.inkSoft, fontWeight: '600', fontSize: 13, letterSpacing: 1,
+    fontFamily: FONTS.sans,
   },
   modalSubmitBtn: {
-    flex: 2,
-    paddingVertical: 15,
-    borderRadius: 14,
-    alignItems: 'center',
-    backgroundColor: COLORS.green,
+    flex: 2, paddingVertical: 15, borderRadius: 4,
+    alignItems: 'center', backgroundColor: COLORS.terracotta,
   },
-  modalSubmitDisabled: {
-    opacity: 0.45,
-  },
+  modalSubmitDisabled: { opacity: 0.45 },
   modalSubmitTxt: {
-    color: COLORS.white,
-    fontWeight: '700',
-    fontSize: 15,
+    color: COLORS.cream, fontWeight: '700', fontSize: 13, letterSpacing: 1,
+    fontFamily: FONTS.sans,
   },
 });

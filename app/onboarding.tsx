@@ -12,39 +12,43 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
+import { COLORS, FONTS } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
-
 const ONBOARDING_KEY = 'hasSeenOnboarding';
 
 type Slide = {
   id: string;
-  emoji: string;
+  kicker: string;
   title: string;
+  titleItalic: string;
   description: string;
 };
 
 const slides: Slide[] = [
   {
     id: '1',
-    emoji: '📸',
-    title: 'Photographiez votre frigo',
+    kicker: '№ 01 · PHOTO',
+    title: 'Photographiez',
+    titleItalic: 'votre frigo.',
     description:
-      'Prenez une photo de votre frigo ou saisissez vos ingrédients à la main. FrigoAI détecte tout automatiquement.',
+      "Prenez une photo de votre frigo ou saisissez vos ingrédients à la main. FrigoAI détecte tout automatiquement.",
   },
   {
     id: '2',
-    emoji: '🍽️',
-    title: 'Recevez des recettes personnalisées',
+    kicker: '№ 02 · RECETTES',
+    title: 'Des recettes',
+    titleItalic: 'personnalisées.',
     description:
-      'En quelques secondes, obtenez des recettes adaptées à ce que vous avez, à vos goûts et à vos préférences.',
+      "En quelques secondes, obtenez des recettes adaptées à ce que vous avez, à vos goûts et à vos préférences.",
   },
   {
     id: '3',
-    emoji: '♻️',
-    title: 'Ne gaspillez plus rien',
+    kicker: '№ 03 · ANTI-GASPI',
+    title: 'Ne gaspillez',
+    titleItalic: 'plus rien.',
     description:
-      'Utilisez chaque ingrédient avant qu\'il ne se périme. Cuisinez mieux, gaspillez moins, économisez plus.',
+      "Utilisez chaque ingrédient avant qu'il ne se périme. Cuisinez mieux, gaspillez moins, économisez plus.",
   },
 ];
 
@@ -62,17 +66,21 @@ export default function OnboardingScreen() {
 
   const handleStart = async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-    navigation.replace('MainTabs');
+    navigation.replace('Main');
   };
 
   const renderItem = ({ item, index }: ListRenderItemInfo<Slide>) => (
     <View style={styles.slide}>
-      <Text style={styles.emoji}>{item.emoji}</Text>
-      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.kicker}>{item.kicker}</Text>
+      <Text style={styles.title}>
+        {item.title}{'\n'}
+        <Text style={styles.italic}>{item.titleItalic}</Text>
+      </Text>
+      <View style={styles.rule} />
       <Text style={styles.description}>{item.description}</Text>
       {index === slides.length - 1 && (
         <TouchableOpacity style={styles.button} onPress={handleStart}>
-          <Text style={styles.buttonText}>Commencer</Text>
+          <Text style={styles.buttonText}>COMMENCER →</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -93,10 +101,7 @@ export default function OnboardingScreen() {
       />
       <View style={styles.pagination}>
         {slides.map((_, i) => (
-          <View
-            key={i}
-            style={[styles.dot, i === activeIndex && styles.dotActive]}
-          />
+          <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
         ))}
       </View>
     </View>
@@ -104,64 +109,43 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: COLORS.cream },
   slide: {
     width,
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
     paddingBottom: 80,
   },
-  emoji: {
-    fontSize: 80,
-    marginBottom: 32,
+  kicker: {
+    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 1.5,
+    color: COLORS.terracotta, marginBottom: 16,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: '#1a1a2e',
-    marginBottom: 16,
+    fontFamily: FONTS.serif, fontSize: 52, lineHeight: 56,
+    color: COLORS.ink, fontWeight: '700', letterSpacing: -2,
   },
+  italic: { fontFamily: FONTS.serifItalic, fontStyle: 'italic', color: COLORS.terracotta },
+  rule: { height: 1, backgroundColor: COLORS.ink, marginTop: 20, marginBottom: 20 },
   description: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#555',
-    lineHeight: 24,
+    fontFamily: FONTS.serif, fontSize: 17,
+    color: COLORS.inkSoft, lineHeight: 26,
   },
   button: {
-    marginTop: 40,
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 30,
+    marginTop: 32, alignSelf: 'flex-start',
+    paddingVertical: 15, paddingHorizontal: 28,
+    backgroundColor: COLORS.ink, borderRadius: 4,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    color: COLORS.cream, fontFamily: FONTS.mono,
+    fontSize: 12, letterSpacing: 1.5, fontWeight: '700',
   },
   pagination: {
-    position: 'absolute',
-    bottom: 32,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
+    position: 'absolute', bottom: 32, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'center', gap: 6,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
+    width: 24, height: 2, backgroundColor: COLORS.rule,
   },
-  dotActive: {
-    backgroundColor: '#4CAF50',
-    width: 20,
-  },
+  dotActive: { backgroundColor: COLORS.terracotta },
 });

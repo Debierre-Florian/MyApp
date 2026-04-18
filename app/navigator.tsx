@@ -13,6 +13,7 @@ import ProfilScreen from './profil';
 import TicketScreen from './ticket';
 import OnboardingScreen from './onboarding';
 import { Recipe } from '../services/api';
+import { COLORS } from '../constants/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,16 +50,14 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
-          elevation: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 6,
+          backgroundColor: COLORS.cream,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.rule,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        tabBarActiveTintColor: '#2D6A4F',
-        tabBarInactiveTintColor: '#999999',
+        tabBarActiveTintColor: COLORS.terracotta,
+        tabBarInactiveTintColor: COLORS.muted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',

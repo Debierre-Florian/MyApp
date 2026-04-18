@@ -12,53 +12,25 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
 import { useFrigo } from '../hooks/useFrigo';
 import { useHistorique } from '../hooks/useHistorique';
+import { COLORS, FONTS } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RecetteDetail'>;
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const COLORS = {
-  green: '#1B5E20',
-  greenMid: '#2E7D32',
-  greenLight: '#43A047',
-  greenPale: '#C8E6C9',
-  white: '#FFFFFF',
-  offWhite: '#F9FBF9',
-  textDark: '#1A1A1A',
-  textMuted: '#6B7F6B',
-  cardBorder: '#E8F0E8',
-  available: '#2E7D32',
-  availableBg: '#E8F5E9',
-  availableBorder: '#A5D6A7',
-  missing: '#C62828',
-  missingBg: '#FFEBEE',
-  missingBorder: '#FFCDD2',
-  checked: '#43A047',
-  unchecked: '#D0D5D0',
-};
 
 export default function RecetteScreen({ route, navigation }: Props) {
   const { recipe } = route.params;
   const { ingredients: frigoIngredients } = useFrigo();
   const { addToHistorique } = useHistorique();
 
-  useEffect(() => {
-    addToHistorique(recipe);
-  }, []);
+  useEffect(() => { addToHistorique(recipe); }, []);
 
-  // Set of frigo ingredient names (lowercase) for O(1) lookup
   const frigoNames = new Set(frigoIngredients.map((i) => i.name.toLowerCase()));
-
-  // Track which steps are checked
   const [checked, setChecked] = useState<Set<number>>(new Set());
 
-  const toggleStep = (stepNum: number) => {
+  const toggleStep = (n: number) => {
     setChecked((prev) => {
       const next = new Set(prev);
-      if (next.has(stepNum)) {
-        next.delete(stepNum);
-      } else {
-        next.add(stepNum);
-      }
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
       return next;
     });
   };
@@ -69,90 +41,72 @@ export default function RecetteScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" backgroundColor={COLORS.green} />
+      <StatusBar style="dark" backgroundColor={COLORS.cream} />
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnTxt}>←</Text>
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerEmoji}>{recipe.emoji}</Text>
-          <Text style={styles.headerTitle} numberOfLines={2}>
-            {recipe.name}
-          </Text>
-        </View>
+        <Text style={styles.kicker}>RECETTE</Text>
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Badges ────────────────────────────────────────────────────────── */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.emoji}>{recipe.emoji}</Text>
+        <Text style={styles.title}>{recipe.name}</Text>
+        <View style={styles.rule} />
+
         <View style={styles.badgesRow}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeTxt}>⏱ {recipe.time}</Text>
-          </View>
-          <View style={[styles.badge, styles.badgeGreen]}>
-            <Text style={[styles.badgeTxt, styles.badgeGreenTxt]}>{recipe.difficulty}</Text>
-          </View>
-          <View style={[styles.badge, styles.badgeProgress]}>
-            <Text style={[styles.badgeTxt, styles.badgeProgressTxt]}>
-              {checked.size}/{recipe.steps.length} étapes
-            </Text>
-          </View>
+          <Text style={styles.badgeTime}>⏱ {recipe.time.toUpperCase()}</Text>
+          <Text style={styles.badgeDot}>·</Text>
+          <Text style={styles.badgeDifficulty}>{recipe.difficulty}</Text>
+          <Text style={styles.badgeDot}>·</Text>
+          <Text style={styles.badgeProgress}>{checked.size}/{recipe.steps.length} ÉTAPES</Text>
         </View>
 
-        {/* ── Description ───────────────────────────────────────────────────── */}
         <Text style={styles.description}>{recipe.description}</Text>
 
-        {/* ── Progress bar ──────────────────────────────────────────────────── */}
         {recipe.steps.length > 0 && (
           <View style={styles.progressSection}>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
             </View>
             {progress === 1 && (
-              <Text style={styles.progressDone}>Recette terminée ! 🎉</Text>
+              <Text style={styles.progressDone}>Recette terminée.</Text>
             )}
           </View>
         )}
 
-        {/* ── Ingrédients ───────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🛒  Ingrédients</Text>
-
+        {/* Ingrédients */}
+        <Text style={styles.sectionLabel}>INGRÉDIENTS</Text>
+        <View style={styles.ingredientBlock}>
           {available.length > 0 && (
-            <View style={styles.ingredientGroup}>
-              <Text style={styles.ingredientGroupLabel}>Dans ton frigo</Text>
+            <View>
+              <Text style={styles.groupLabel}>DANS TON FRIGO</Text>
               {available.map((ing) => (
                 <View key={ing} style={[styles.ingredientRow, styles.ingredientAvailable]}>
-                  <Text style={styles.ingredientDot}>✓</Text>
-                  <Text style={[styles.ingredientName, styles.ingredientNameAvailable]}>{ing}</Text>
+                  <Text style={styles.ingredientAvailDot}>—</Text>
+                  <Text style={[styles.ingredientName, { color: COLORS.olive }]}>{ing}</Text>
                 </View>
               ))}
             </View>
           )}
-
           {missing.length > 0 && (
-            <View style={styles.ingredientGroup}>
-              <Text style={styles.ingredientGroupLabel}>À acheter</Text>
+            <View style={{ marginTop: available.length > 0 ? 14 : 0 }}>
+              <Text style={styles.groupLabel}>À ACHETER</Text>
               {missing.map((ing) => (
                 <View key={ing} style={[styles.ingredientRow, styles.ingredientMissing]}>
-                  <Text style={styles.ingredientDotMissing}>✗</Text>
-                  <Text style={[styles.ingredientName, styles.ingredientNameMissing]}>{ing}</Text>
+                  <Text style={styles.ingredientMissDot}>+</Text>
+                  <Text style={[styles.ingredientName, { color: COLORS.terracotta }]}>{ing}</Text>
                 </View>
               ))}
             </View>
           )}
         </View>
 
-        {/* ── Étapes ────────────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👨‍🍳  Étapes</Text>
-
+        {/* Étapes */}
+        <Text style={styles.sectionLabel}>PRÉPARATION</Text>
+        <View style={styles.stepsBlock}>
           {recipe.steps.map((s) => {
             const done = checked.has(s.step);
             return (
@@ -162,28 +116,26 @@ export default function RecetteScreen({ route, navigation }: Props) {
                 activeOpacity={0.7}
                 onPress={() => toggleStep(s.step)}
               >
-                <View style={[styles.checkbox, done && styles.checkboxDone]}>
-                  {done && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <View style={styles.stepContent}>
-                  <Text style={styles.stepNum}>Étape {s.step}</Text>
-                  <Text style={[styles.stepInstruction, done && styles.stepInstructionDone]}>
-                    {s.instruction}
+                <View style={[styles.stepNumberBox, done && styles.stepNumberBoxDone]}>
+                  <Text style={[styles.stepNumber, done && styles.stepNumberDone]}>
+                    {s.step < 10 ? `0${s.step}` : s.step}
                   </Text>
                 </View>
+                <Text style={[styles.stepInstruction, done && styles.stepInstructionDone]}>
+                  {s.instruction}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* ── Reset ─────────────────────────────────────────────────────────── */}
         {checked.size > 0 && (
           <TouchableOpacity
             style={styles.resetBtn}
             activeOpacity={0.8}
             onPress={() => setChecked(new Set())}
           >
-            <Text style={styles.resetBtnTxt}>Recommencer la recette</Text>
+            <Text style={styles.resetBtnTxt}>RECOMMENCER LA RECETTE</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -191,267 +143,131 @@ export default function RecetteScreen({ route, navigation }: Props) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.green,
-  },
-
-  // ── Header ──────────────────────────────────────────────────────────────────
+  safeArea: { flex: 1, backgroundColor: COLORS.cream },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.green,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnTxt: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: '300',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  headerEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
-  },
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
+  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  backBtnTxt: { color: COLORS.ink, fontSize: 24, fontFamily: FONTS.serif },
+  kicker: { fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5, color: COLORS.inkSoft },
 
-  // ── Scroll ──────────────────────────────────────────────────────────────────
-  scroll: {
-    flex: 1,
-    backgroundColor: COLORS.offWhite,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 48,
-  },
+  scrollContent: { padding: 24, paddingTop: 8, paddingBottom: 48 },
 
-  // ── Badges ──────────────────────────────────────────────────────────────────
+  emoji: { fontSize: 48, marginBottom: 6 },
+  title: {
+    fontFamily: FONTS.serif, fontSize: 36, lineHeight: 40,
+    color: COLORS.ink, fontWeight: '700', letterSpacing: -1,
+  },
+  rule: { height: 1, backgroundColor: COLORS.ink, marginTop: 14, marginBottom: 14 },
+
   badgesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 14,
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap',
+    gap: 6, marginBottom: 14,
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#F0F4F0',
+  badgeTime: {
+    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 1.2,
+    color: COLORS.terracotta,
   },
-  badgeGreen: {
-    backgroundColor: COLORS.greenPale,
+  badgeDot: { color: COLORS.muted },
+  badgeDifficulty: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1,
+    color: COLORS.olive,
+    paddingHorizontal: 6, paddingVertical: 2,
+    borderWidth: 1, borderColor: COLORS.oliveSoft, borderRadius: 3,
   },
   badgeProgress: {
-    backgroundColor: '#E3F2FD',
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1,
+    color: COLORS.inkSoft,
   },
-  badgeTxt: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  badgeGreenTxt: {
-    color: COLORS.greenMid,
-  },
-  badgeProgressTxt: {
-    color: '#1565C0',
-  },
-
-  // ── Description ─────────────────────────────────────────────────────────────
   description: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    lineHeight: 21,
-    marginBottom: 16,
+    fontFamily: FONTS.serif, fontSize: 15,
+    color: COLORS.inkSoft, lineHeight: 22, marginBottom: 16,
+    fontStyle: 'italic',
   },
 
-  // ── Progress ────────────────────────────────────────────────────────────────
-  progressSection: {
-    marginBottom: 20,
-  },
+  progressSection: { marginBottom: 20 },
   progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#D0D5D0',
-    overflow: 'hidden',
+    height: 4, borderRadius: 2,
+    backgroundColor: COLORS.creamDeep, overflow: 'hidden',
   },
-  progressFill: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.greenLight,
-  },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: COLORS.olive },
   progressDone: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.greenMid,
-    textAlign: 'center',
+    marginTop: 8, fontFamily: FONTS.serifItalic, fontStyle: 'italic',
+    fontSize: 14, color: COLORS.olive, textAlign: 'center',
   },
 
-  // ── Section ─────────────────────────────────────────────────────────────────
-  section: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+  sectionLabel: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5,
+    color: COLORS.olive, marginTop: 8, marginBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    marginBottom: 14,
+  ingredientBlock: {
+    backgroundColor: COLORS.paper,
+    borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 14, marginBottom: 20,
   },
-
-  // ── Ingredients ─────────────────────────────────────────────────────────────
-  ingredientGroup: {
-    marginBottom: 12,
-  },
-  ingredientGroupLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 8,
+  groupLabel: {
+    fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.3,
+    color: COLORS.muted, marginBottom: 6,
   },
   ingredientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 6,
-    gap: 10,
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 6, gap: 10,
   },
-  ingredientAvailable: {
-    backgroundColor: COLORS.availableBg,
-    borderWidth: 1,
-    borderColor: COLORS.availableBorder,
+  ingredientAvailable: {},
+  ingredientMissing: {},
+  ingredientAvailDot: {
+    fontFamily: FONTS.mono, color: COLORS.olive, width: 14, textAlign: 'center',
   },
-  ingredientMissing: {
-    backgroundColor: COLORS.missingBg,
-    borderWidth: 1,
-    borderColor: COLORS.missingBorder,
-  },
-  ingredientDot: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.available,
-    width: 18,
-    textAlign: 'center',
-  },
-  ingredientDotMissing: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.missing,
-    width: 18,
-    textAlign: 'center',
+  ingredientMissDot: {
+    fontFamily: FONTS.mono, color: COLORS.terracotta, width: 14, textAlign: 'center',
+    fontWeight: '700',
   },
   ingredientName: {
-    fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
-  },
-  ingredientNameAvailable: {
-    color: COLORS.available,
-  },
-  ingredientNameMissing: {
-    color: COLORS.missing,
+    fontFamily: FONTS.serif, fontSize: 15, flex: 1,
+    textTransform: 'capitalize',
   },
 
-  // ── Steps ───────────────────────────────────────────────────────────────────
+  stepsBlock: {
+    backgroundColor: COLORS.paper,
+    borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 14, marginBottom: 20,
+  },
   stepRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 14,
     paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.cardBorder,
+    borderBottomWidth: 1, borderBottomColor: COLORS.rule,
   },
-  stepRowDone: {
-    opacity: 0.55,
+  stepRowDone: { opacity: 0.5 },
+  stepNumberBox: {
+    width: 32, height: 32, borderRadius: 4,
+    borderWidth: 1, borderColor: COLORS.terracotta,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.cream,
   },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: COLORS.unchecked,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    marginTop: 1,
+  stepNumberBoxDone: {
+    backgroundColor: COLORS.olive, borderColor: COLORS.olive,
   },
-  checkboxDone: {
-    backgroundColor: COLORS.checked,
-    borderColor: COLORS.checked,
+  stepNumber: {
+    fontFamily: FONTS.mono, fontSize: 13,
+    color: COLORS.terracotta, fontWeight: '700', letterSpacing: 0.5,
   },
-  checkmark: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  stepContent: {
-    flex: 1,
-  },
-  stepNum: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.greenMid,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 3,
-  },
+  stepNumberDone: { color: COLORS.cream },
   stepInstruction: {
-    fontSize: 14,
-    color: COLORS.textDark,
-    lineHeight: 21,
+    flex: 1, fontFamily: FONTS.serif,
+    fontSize: 14, color: COLORS.ink, lineHeight: 22, paddingTop: 6,
   },
   stepInstructionDone: {
-    textDecorationLine: 'line-through',
-    color: COLORS.textMuted,
+    textDecorationLine: 'line-through', color: COLORS.muted,
   },
 
-  // ── Reset ────────────────────────────────────────────────────────────────────
   resetBtn: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
+    paddingVertical: 12, borderRadius: 4,
+    borderWidth: 1, borderColor: COLORS.rule, alignItems: 'center',
   },
   resetBtnTxt: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    fontWeight: '600',
+    color: COLORS.inkSoft, fontFamily: FONTS.mono,
+    fontSize: 11, letterSpacing: 1.5,
   },
 });
