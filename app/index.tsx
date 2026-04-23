@@ -27,6 +27,7 @@ import { useCamera } from '../hooks/useCamera';
 import { RootStackParamList, TabParamList } from './navigator';
 import { COLORS, FONTS } from '../constants/theme';
 import { useProfils, PROFILE_COLORS, COLOR_OPTIONS, type ProfileColor } from '../hooks/useProfils';
+import { useHistorique } from '../hooks/useHistorique';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Home'>,
@@ -45,6 +46,7 @@ export default function HomeScreen({ navigation }: Props) {
   const { cameraRef, permission, cameraState, capturedPhoto, openCamera, closeCamera, takePicture, retake } =
     useCamera();
   const { ingredients, checkExpiringIngredients } = useFrigo();
+  const { historique } = useHistorique();
   const { preferences } = usePreferences();
   const score = useScore();
   const { profils, activeId, setActiveId, addProfil } = useProfils();
@@ -310,12 +312,23 @@ export default function HomeScreen({ navigation }: Props) {
               <Text style={styles.sectionTitleItalic}>cette semaine</Text>
             </Text>
             <View style={styles.chipsRow}>
-              {urgent.map((i) => (
-                <View key={i.id} style={styles.urgentChip}>
-                  <Text style={styles.urgentChipName}>{i.name}</Text>
-                  <Text style={styles.urgentChipDays}>{i.days}j</Text>
-                </View>
-              ))}
+              {urgent.map((i) => {
+                const isRed = i.days >= 8;
+                return (
+                  <View
+                    key={i.id}
+                    style={[
+                      styles.urgentChip,
+                      isRed ? styles.urgentChipRed : styles.urgentChipOrange,
+                    ]}
+                  >
+                    <Text style={styles.urgentChipName}>{i.name}</Text>
+                    <Text style={[styles.urgentChipDays, isRed && styles.urgentChipDaysRed]}>
+                      {i.days}j
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </>
         )}
@@ -329,6 +342,29 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.linkTxt}>DANS LE FRIGO · {ingredients.length} ITEMS</Text>
           <Text style={styles.linkArrow}>→</Text>
         </TouchableOpacity>
+
+        {/* ── Recette du soir ──────────────────────────────────────────── */}
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionDot}>●</Text>
+          <Text style={styles.sectionLabel}>RECETTE DU SOIR</Text>
+        </View>
+        {historique.length > 0 ? (
+          <TouchableOpacity
+            style={styles.recipeCard}
+            onPress={() => navigation.navigate('RecetteDetail', { recipe: historique[0].recipe })}
+            activeOpacity={0.82}
+          >
+            <Text style={styles.recipeCardKicker}>DERNIÈRE CONSULTÉE</Text>
+            <Text style={styles.recipeCardName}>{historique[0].recipe.name}</Text>
+            <Text style={styles.recipeCardTime}>{historique[0].recipe.time}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.recipeCardEmpty}>
+            <Text style={styles.recipeCardEmptyTxt}>
+              Analysez votre frigo pour découvrir une recette
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* ── Add profil modal ─────────────────────────────────────────── */}
@@ -774,11 +810,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 90,
     borderWidth: 1,
-    borderColor: COLORS.rule,
-    backgroundColor: COLORS.paper,
     borderRadius: 4,
     paddingVertical: 10,
     paddingHorizontal: 12,
+  },
+  urgentChipOrange: {
+    borderColor: '#E07B39',
+    backgroundColor: '#FDF3EB',
+  },
+  urgentChipRed: {
+    borderColor: '#C0392B',
+    backgroundColor: '#FDECEA',
   },
   urgentChipName: {
     fontFamily: FONTS.serif,
@@ -789,9 +831,61 @@ const styles = StyleSheet.create({
   urgentChipDays: {
     fontFamily: FONTS.mono,
     fontSize: 10,
-    color: COLORS.terracotta,
+    color: '#E07B39',
     marginTop: 2,
     letterSpacing: 0.8,
+  },
+  urgentChipDaysRed: {
+    color: '#C0392B',
+  },
+
+  // Recipe du soir
+  recipeCard: {
+    backgroundColor: COLORS.paper,
+    borderWidth: 1,
+    borderColor: COLORS.rule,
+    borderRadius: 4,
+    padding: 20,
+    marginBottom: 8,
+  },
+  recipeCardKicker: {
+    fontFamily: FONTS.mono,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: COLORS.olive,
+    marginBottom: 8,
+  },
+  recipeCardName: {
+    fontFamily: FONTS.serifItalic,
+    fontStyle: 'italic',
+    fontWeight: '700',
+    fontSize: 22,
+    color: COLORS.ink,
+    marginBottom: 10,
+    lineHeight: 28,
+  },
+  recipeCardTime: {
+    fontFamily: FONTS.mono,
+    fontSize: 12,
+    color: COLORS.inkSoft,
+    letterSpacing: 0.8,
+  },
+  recipeCardEmpty: {
+    borderWidth: 1,
+    borderColor: COLORS.rule,
+    borderRadius: 4,
+    borderStyle: 'dashed',
+    padding: 20,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  recipeCardEmptyTxt: {
+    fontFamily: FONTS.serifItalic,
+    fontStyle: 'italic',
+    fontSize: 15,
+    color: COLORS.muted,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 
   // Link row
