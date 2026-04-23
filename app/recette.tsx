@@ -25,10 +25,24 @@ export default function RecetteScreen({ route, navigation }: Props) {
 
   useEffect(() => { addToHistorique(recipe); }, []);
 
-  const existing = historique.find((e) => e.recipe.name === recipe.name);
-  const [selectedRating, setSelectedRating] = useState<number>(existing?.rating ?? 0);
-  const [comment, setComment] = useState<string>(existing?.comment ?? '');
-  const [ratingSaved, setRatingSaved] = useState<boolean>(!!existing?.rating);
+  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>('');
+  const [ratingSaved, setRatingSaved] = useState<boolean>(false);
+  const [wasRatedBefore, setWasRatedBefore] = useState<boolean>(false);
+  const [ratingLoaded, setRatingLoaded] = useState<boolean>(false);
+
+  // Pré-remplissage une fois l'historique chargé depuis AsyncStorage
+  useEffect(() => {
+    if (ratingLoaded || historique.length === 0) return;
+    const existing = historique.find((e) => e.recipe.name === recipe.name);
+    if (existing?.rating) {
+      setSelectedRating(existing.rating);
+      setComment(existing.comment ?? '');
+      setRatingSaved(true);
+      setWasRatedBefore(true);
+    }
+    setRatingLoaded(true);
+  }, [historique]);
 
   const handleSaveRating = async () => {
     if (selectedRating === 0) return;
@@ -160,7 +174,7 @@ export default function RecetteScreen({ route, navigation }: Props) {
             {[1, 2, 3, 4, 5].map((star) => (
               <TouchableOpacity
                 key={star}
-                onPress={() => { setSelectedRating(star); setRatingSaved(false); }}
+                onPress={() => { setSelectedRating(star); setRatingSaved(false);  }}
                 activeOpacity={0.7}
                 style={styles.starBtn}
               >
@@ -186,7 +200,7 @@ export default function RecetteScreen({ route, navigation }: Props) {
             disabled={selectedRating === 0}
           >
             <Text style={[styles.saveRatingBtnTxt, ratingSaved && styles.saveRatingBtnTxtSaved]}>
-              {ratingSaved ? '✓ AVIS ENREGISTRÉ' : 'ENREGISTRER MON AVIS'}
+              {ratingSaved ? '✓ AVIS ENREGISTRÉ' : wasRatedBefore ? 'MODIFIER MON AVIS' : 'ENREGISTRER MON AVIS'}
             </Text>
           </TouchableOpacity>
         </View>
