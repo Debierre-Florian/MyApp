@@ -39,9 +39,11 @@ function getFreshness(item: FrigoIngredient): Freshness {
   return 'fresh';
 }
 
-function formatDate(iso: string): string {
+function formatExpiry(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `Expire le ${day}/${month}`;
 }
 
 const FRESHNESS: Record<Freshness, { bar: string; label: string }> = {
@@ -66,7 +68,7 @@ function IngredientCard({
   const ageLabel =
     days === 0 ? "AJOUTÉ AUJOURD'HUI" : days === 1 ? 'IL Y A 1 JOUR' : `IL Y A ${days} JOURS`;
 
-  const expiryDate = item.expiresAt ? new Date(item.expiresAt) : undefined;
+  const expiryDate = item.expiresAt ? new Date(item.expiresAt) : new Date();
 
   function handlePickerChange(_: DateTimePickerEvent, date?: Date) {
     setShowPicker(false);
@@ -79,17 +81,17 @@ function IngredientCard({
       <View style={styles.cardBody}>
         <Text style={styles.cardName}>{item.name}</Text>
         <Text style={styles.cardAge}>{ageLabel}</Text>
-        {expiryDate && (
-          <View style={styles.expiryRow}>
-            <Text style={styles.expiryTxt}>PÉREMPTION {formatDate(item.expiresAt!)}</Text>
-            <TouchableOpacity
-              onPress={() => setShowPicker(true)}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Text style={styles.pencilTxt}>✎</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.expiryRow}>
+          <Text style={styles.expiryTxt}>
+            {item.expiresAt ? formatExpiry(item.expiresAt) : 'Date inconnue'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowPicker(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.pencilTxt}>✏️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <Text style={[styles.cardStatus, { color: cfg.bar }]}>{cfg.label}</Text>
       <TouchableOpacity
@@ -101,10 +103,9 @@ function IngredientCard({
       </TouchableOpacity>
       {showPicker && (
         <DateTimePicker
-          value={expiryDate ?? new Date()}
+          value={expiryDate}
           mode="date"
           display="default"
-          minimumDate={new Date()}
           onChange={handlePickerChange}
         />
       )}
@@ -243,10 +244,10 @@ const styles = StyleSheet.create({
   },
   expiryTxt: {
     fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.2,
-    color: COLORS.inkSoft,
+    color: COLORS.terracotta,
   },
   pencilTxt: {
-    fontSize: 11, color: COLORS.inkSoft,
+    fontSize: 11,
   },
   cardStatus: {
     fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
