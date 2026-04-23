@@ -127,9 +127,9 @@ export default function PreferencesScreen({ navigation }: Props) {
   } = usePreferences();
   const { activeProfil } = useProfils();
   const { checkExpiringIngredients } = useFrigo();
-  const { likedIngredients, dislikedIngredients } = useRatings();
+  const { likedIngredientsRaw, dislikedIngredientsRaw, applyRatings, setApplyRatings } = useRatings();
   const { clearRatings } = useHistorique();
-  const hasLearnedPrefs = likedIngredients.length > 0 || dislikedIngredients.length > 0;
+  const hasLearnedPrefs = likedIngredientsRaw.length > 0 || dislikedIngredientsRaw.length > 0;
   const [notificationsEnabled, setNotifState] = useState(true);
 
   useEffect(() => { getNotificationsEnabled().then(setNotifState); }, []);
@@ -256,17 +256,32 @@ export default function PreferencesScreen({ navigation }: Props) {
         <Text style={styles.sectionLabel}>APPRIS PAR VOS NOTES</Text>
         <Text style={styles.sectionHint}>Déduit automatiquement de vos recettes notées</Text>
         <View style={styles.section}>
+          {/* Toggle appliquer aux suggestions */}
+          <View style={styles.notifRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.notifLabel}>Appliquer automatiquement aux suggestions</Text>
+              <Text style={styles.notifHint}>FrigoAI adapte vos recettes selon vos notes</Text>
+            </View>
+            <Switch
+              value={applyRatings}
+              onValueChange={setApplyRatings}
+              trackColor={{ false: COLORS.rule, true: COLORS.olive }}
+              thumbColor={COLORS.cream}
+            />
+          </View>
+
           {!hasLearnedPrefs ? (
-            <Text style={styles.learnedEmpty}>
+            <Text style={[styles.learnedEmpty, { marginTop: 14 }]}>
               Notez des recettes pour que FrigoAI apprenne vos goûts.
             </Text>
           ) : (
             <>
-              {likedIngredients.length > 0 && (
+              <View style={styles.learnedDivider} />
+              {likedIngredientsRaw.length > 0 && (
                 <View style={styles.learnedGroup}>
                   <Text style={styles.learnedGroupLabel}>AIMÉS</Text>
                   <View style={styles.tagList}>
-                    {likedIngredients.map((ing) => (
+                    {likedIngredientsRaw.map((ing) => (
                       <View key={ing} style={[styles.tag, styles.tagLiked]}>
                         <Text style={styles.tagStarLiked}>★</Text>
                         <Text style={[styles.tagTxt, { color: COLORS.olive }]}>{ing}</Text>
@@ -275,11 +290,11 @@ export default function PreferencesScreen({ navigation }: Props) {
                   </View>
                 </View>
               )}
-              {dislikedIngredients.length > 0 && (
-                <View style={[styles.learnedGroup, likedIngredients.length > 0 && { marginTop: 14 }]}>
+              {dislikedIngredientsRaw.length > 0 && (
+                <View style={[styles.learnedGroup, likedIngredientsRaw.length > 0 && { marginTop: 14 }]}>
                   <Text style={styles.learnedGroupLabel}>ÉVITÉS</Text>
                   <View style={styles.tagList}>
-                    {dislikedIngredients.map((ing) => (
+                    {dislikedIngredientsRaw.map((ing) => (
                       <View key={ing} style={[styles.tag, styles.tagDisliked]}>
                         <Text style={styles.tagStarDisliked}>★</Text>
                         <Text style={[styles.tagTxt, { color: COLORS.terracotta }]}>{ing}</Text>
@@ -427,6 +442,9 @@ const styles = StyleSheet.create({
     fontSize: 11, fontWeight: '700', fontFamily: FONTS.mono,
   },
 
+  learnedDivider: {
+    height: 1, backgroundColor: COLORS.rule, marginVertical: 14,
+  },
   learnedEmpty: {
     fontFamily: FONTS.serifItalic, fontStyle: 'italic',
     fontSize: 13, color: COLORS.muted, lineHeight: 20,
