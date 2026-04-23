@@ -93,11 +93,15 @@ export default function AnalyseScreen({ route, navigation }: Props) {
   const { addIngredients } = useFrigo();
   const { preferences } = usePreferences();
   const ratings = useRatings();
+  // applyRatings vaut true|false une fois AsyncStorage lu ; on attend avant de lancer l'analyse
+  const ratingsReady = ratings.applyRatings !== undefined;
 
   useEffect(() => {
+    if (!ratingsReady) return;
     let cancelled = false;
     async function run() {
       try {
+        console.log('[Analyse] lancement avec ratings — liked:', ratings.likedIngredients, '| disliked:', ratings.dislikedIngredients);
         const result = await analysePhoto({ photoUri, ingredientText, preferences, ratings });
         if (cancelled) return;
         setRecipes(result.recipes);
@@ -120,7 +124,7 @@ export default function AnalyseScreen({ route, navigation }: Props) {
     }
     run();
     return () => { cancelled = true; };
-  }, []);
+  }, [ratingsReady]);
 
   const handleRetake = () => navigation.goBack();
 

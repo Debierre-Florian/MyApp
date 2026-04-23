@@ -19,17 +19,21 @@ export interface RatingsContext {
 
 export function useRatings(): RatingsContext {
   const { historique } = useHistorique();
-  const [applyRatings, setApplyRatingsState] = useState<boolean>(true);
+  // null = pas encore lu depuis AsyncStorage
+  const [applyRatings, setApplyRatingsState] = useState<boolean | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(RATINGS_APPLY_KEY).then((raw) => {
-      if (raw !== null) setApplyRatingsState(raw === 'true');
+      // absence de valeur sauvegardée = activé par défaut
+      setApplyRatingsState(raw === null ? true : raw === 'true');
+      console.log('[useRatings] toggle lu depuis AsyncStorage :', raw === null ? 'true (défaut)' : raw);
     });
   }, []);
 
   const setApplyRatings = useCallback(async (value: boolean) => {
     setApplyRatingsState(value);
     await AsyncStorage.setItem(RATINGS_APPLY_KEY, String(value));
+    console.log('[useRatings] toggle mis à jour :', value);
   }, []);
 
   return useMemo(() => {
@@ -39,14 +43,20 @@ export function useRatings(): RatingsContext {
     const likedIngredientsRaw = Array.from(new Set(liked.flatMap((e) => e.recipe.ingredients)));
     const dislikedIngredientsRaw = Array.from(new Set(disliked.flatMap((e) => e.recipe.ingredients)));
 
+    // applyRatings null = AsyncStorage pas encore lu, on bloque en retournant []
+    const apply = applyRatings === true;
+
+    console.log('[useRatings] calcul favoris — applyRatings:', applyRatings, '→ apply:', apply,
+      '| liked:', apply ? likedIngredientsRaw : [], '| disliked:', apply ? dislikedIngredientsRaw : []);
+
     return {
-      likedRecipes: applyRatings ? liked.map((e) => e.recipe) : [],
-      dislikedRecipes: applyRatings ? disliked.map((e) => e.recipe) : [],
-      likedIngredients: applyRatings ? likedIngredientsRaw : [],
-      dislikedIngredients: applyRatings ? dislikedIngredientsRaw : [],
+      likedRecipes: apply ? liked.map((e) => e.recipe) : [],
+      dislikedRecipes: apply ? disliked.map((e) => e.recipe) : [],
+      likedIngredients: apply ? likedIngredientsRaw : [],
+      dislikedIngredients: apply ? dislikedIngredientsRaw : [],
       likedIngredientsRaw,
       dislikedIngredientsRaw,
-      applyRatings,
+      applyRatings: applyRatings ?? true,
       setApplyRatings,
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

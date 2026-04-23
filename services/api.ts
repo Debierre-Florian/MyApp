@@ -38,6 +38,7 @@ export interface RatingsHint {
 }
 
 function buildPreferencesBlock(prefs?: UserPreferences, ratings?: RatingsHint): string {
+  console.log('[api] buildPreferencesBlock — ratings reçus:', ratings);
   const lines: string[] = [];
 
   if (prefs?.firstName) {
