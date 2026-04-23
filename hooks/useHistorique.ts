@@ -40,8 +40,15 @@ export function useHistorique() {
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       const existing: HistoriqueEntry[] = raw ? (JSON.parse(raw) as HistoriqueEntry[]) : [];
+      const previous = existing.find((e) => e.recipe.name === recipe.name);
       const filtered = existing.filter((e) => e.recipe.name !== recipe.name);
-      const updated = [{ recipe, viewedAt: new Date().toISOString() }, ...filtered].slice(0, 50);
+      const newEntry: HistoriqueEntry = {
+        recipe,
+        viewedAt: new Date().toISOString(),
+        ...(previous?.rating !== undefined && { rating: previous.rating }),
+        ...(previous?.comment !== undefined && { comment: previous.comment }),
+      };
+      const updated = [newEntry, ...filtered].slice(0, 50);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setHistorique(updated);
     } catch {

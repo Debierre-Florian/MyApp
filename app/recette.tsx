@@ -31,10 +31,12 @@ export default function RecetteScreen({ route, navigation }: Props) {
   const [wasRatedBefore, setWasRatedBefore] = useState<boolean>(false);
   const [ratingLoaded, setRatingLoaded] = useState<boolean>(false);
 
-  // Pré-remplissage une fois l'historique chargé depuis AsyncStorage
+  // Pré-remplissage une fois l'historique chargé depuis AsyncStorage (une seule fois)
   useEffect(() => {
-    if (ratingLoaded || historique.length === 0) return;
+    if (ratingLoaded) return;
     const existing = historique.find((e) => e.recipe.name === recipe.name);
+    // historique vide = pas encore chargé, on attend
+    if (historique.length === 0 && !existing) return;
     if (existing?.rating) {
       setSelectedRating(existing.rating);
       setComment(existing.comment ?? '');
