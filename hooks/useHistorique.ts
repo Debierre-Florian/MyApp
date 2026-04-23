@@ -75,5 +75,17 @@ export function useHistorique() {
     }
   }, []);
 
-  return { historique, load, addToHistorique, clearHistorique, rateRecipe };
+  const clearRatings = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const existing: HistoriqueEntry[] = raw ? (JSON.parse(raw) as HistoriqueEntry[]) : [];
+      const updated = existing.map(({ rating: _r, comment: _c, ...rest }) => rest as HistoriqueEntry);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      setHistorique(updated);
+    } catch {
+      // silently ignore storage errors
+    }
+  }, []);
+
+  return { historique, load, addToHistorique, clearHistorique, rateRecipe, clearRatings };
 }

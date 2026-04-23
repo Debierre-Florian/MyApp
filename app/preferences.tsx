@@ -29,6 +29,8 @@ import {
 } from '../services/notifications';
 import { COLORS, FONTS } from '../constants/theme';
 import { useProfils, PROFILE_COLORS } from '../hooks/useProfils';
+import { useRatings } from '../hooks/useRatings';
+import { useHistorique } from '../hooks/useHistorique';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Preferences'>;
 
@@ -125,6 +127,9 @@ export default function PreferencesScreen({ navigation }: Props) {
   } = usePreferences();
   const { activeProfil } = useProfils();
   const { checkExpiringIngredients } = useFrigo();
+  const { likedIngredients, dislikedIngredients } = useRatings();
+  const { clearRatings } = useHistorique();
+  const hasLearnedPrefs = likedIngredients.length > 0 || dislikedIngredients.length > 0;
   const [notificationsEnabled, setNotifState] = useState(true);
 
   useEffect(() => { getNotificationsEnabled().then(setNotifState); }, []);
@@ -245,6 +250,53 @@ export default function PreferencesScreen({ navigation }: Props) {
             placeholder="coriandre, anchois..."
             tone="terra"
           />
+        </View>
+
+        {/* Appris par les notes */}
+        <Text style={styles.sectionLabel}>APPRIS PAR VOS NOTES</Text>
+        <Text style={styles.sectionHint}>Déduit automatiquement de vos recettes notées</Text>
+        <View style={styles.section}>
+          {!hasLearnedPrefs ? (
+            <Text style={styles.learnedEmpty}>
+              Notez des recettes pour que FrigoAI apprenne vos goûts.
+            </Text>
+          ) : (
+            <>
+              {likedIngredients.length > 0 && (
+                <View style={styles.learnedGroup}>
+                  <Text style={styles.learnedGroupLabel}>AIMÉS</Text>
+                  <View style={styles.tagList}>
+                    {likedIngredients.map((ing) => (
+                      <View key={ing} style={[styles.tag, styles.tagLiked]}>
+                        <Text style={styles.tagStarLiked}>★</Text>
+                        <Text style={[styles.tagTxt, { color: COLORS.olive }]}>{ing}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+              {dislikedIngredients.length > 0 && (
+                <View style={[styles.learnedGroup, likedIngredients.length > 0 && { marginTop: 14 }]}>
+                  <Text style={styles.learnedGroupLabel}>ÉVITÉS</Text>
+                  <View style={styles.tagList}>
+                    {dislikedIngredients.map((ing) => (
+                      <View key={ing} style={[styles.tag, styles.tagDisliked]}>
+                        <Text style={styles.tagStarDisliked}>★</Text>
+                        <Text style={[styles.tagTxt, { color: COLORS.terracotta }]}>{ing}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.resetLearnedBtn}
+                activeOpacity={0.8}
+                onPress={clearRatings}
+              >
+                <Text style={styles.resetLearnedBtnTxt}>RÉINITIALISER</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Notifications */}
@@ -373,5 +425,35 @@ const styles = StyleSheet.create({
   },
   tagRemove: {
     fontSize: 11, fontWeight: '700', fontFamily: FONTS.mono,
+  },
+
+  learnedEmpty: {
+    fontFamily: FONTS.serifItalic, fontStyle: 'italic',
+    fontSize: 13, color: COLORS.muted, lineHeight: 20,
+  },
+  learnedGroup: {},
+  learnedGroupLabel: {
+    fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.3,
+    color: COLORS.muted, marginBottom: 8,
+  },
+  tagLiked: {
+    backgroundColor: COLORS.oliveBg, borderColor: COLORS.olive,
+  },
+  tagDisliked: {
+    backgroundColor: COLORS.terracottaBg, borderColor: COLORS.terracotta,
+  },
+  tagStarLiked: {
+    fontSize: 11, color: COLORS.olive,
+  },
+  tagStarDisliked: {
+    fontSize: 11, color: COLORS.terracotta,
+  },
+  resetLearnedBtn: {
+    marginTop: 16, paddingVertical: 10, borderRadius: 4,
+    borderWidth: 1, borderColor: COLORS.rule, alignItems: 'center',
+  },
+  resetLearnedBtnTxt: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.5,
+    color: COLORS.inkSoft,
   },
 });
