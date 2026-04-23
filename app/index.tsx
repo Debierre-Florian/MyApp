@@ -28,6 +28,7 @@ import { RootStackParamList, TabParamList } from './navigator';
 import { COLORS, FONTS } from '../constants/theme';
 import { useProfils, PROFILE_COLORS, COLOR_OPTIONS, type ProfileColor } from '../hooks/useProfils';
 import { useHistorique } from '../hooks/useHistorique';
+import { useAbonnement } from '../hooks/useAbonnement';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Home'>,
@@ -50,6 +51,7 @@ export default function HomeScreen({ navigation }: Props) {
   const { preferences } = usePreferences();
   const score = useScore();
   const { profils, activeId, setActiveId, addProfil } = useProfils();
+  const { plan } = useAbonnement();
 
   useEffect(() => {
     initNotifications(checkExpiringIngredients());
@@ -380,6 +382,19 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
+
+      {/* ── Banner Premium ───────────────────────────────────────────── */}
+      {plan === 'gratuit' && (
+        <TouchableOpacity
+          style={styles.premiumBanner}
+          onPress={() => navigation.navigate('Abonnement')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.premiumBannerTxt}>
+            Passez Premium pour débloquer les promos personnalisées →
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* ── Add profil modal ─────────────────────────────────────────── */}
       <Modal
@@ -947,6 +962,18 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
   },
   linkArrow: { fontSize: 16, color: COLORS.ink },
+
+  // Premium banner
+  premiumBanner: {
+    backgroundColor: COLORS.terracottaBg,
+    borderTopWidth: 1, borderTopColor: COLORS.terracottaSoft,
+    paddingVertical: 10, paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  premiumBannerTxt: {
+    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 0.8,
+    color: COLORS.terracotta, textAlign: 'center',
+  },
 
   // ─── Camera (shared) ──────────────────────────────────────────────
   cameraContainer: { flex: 1, backgroundColor: '#000' },

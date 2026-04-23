@@ -18,6 +18,7 @@ import { usePreferences } from '../hooks/usePreferences';
 import { useFrigo } from '../hooks/useFrigo';
 import { useScore } from '../hooks/useScore';
 import { useProfils, PROFILE_COLORS } from '../hooks/useProfils';
+import { useAbonnement } from '../hooks/useAbonnement';
 import { COLORS, FONTS } from '../constants/theme';
 
 type Props = CompositeScreenProps<
@@ -30,6 +31,7 @@ export default function ProfilScreen({ navigation }: Props) {
   const { ingredients, reload: reloadFrigo } = useFrigo();
   const score = useScore();
   const { profils, activeProfil, activeId, deleteProfil } = useProfils();
+  const { plan } = useAbonnement();
 
   useFocusEffect(useCallback(() => {
     reloadPrefs();
@@ -162,6 +164,22 @@ export default function ProfilScreen({ navigation }: Props) {
             </>
           )}
         </View>
+
+        {/* Abonnement */}
+        <Text style={styles.sectionLabel}>ABONNEMENT</Text>
+        <TouchableOpacity
+          style={styles.abonnementBtn}
+          onPress={() => navigation.navigate('Abonnement')}
+          activeOpacity={0.8}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.abonnementBtnTxt}>Gérer mon abonnement</Text>
+            <View style={styles.planBadge}>
+              <Text style={styles.planBadgeTxt}>{plan.toUpperCase()}</Text>
+            </View>
+          </View>
+          <Text style={styles.abonnementArrow}>→</Text>
+        </TouchableOpacity>
 
         {/* Other profiles */}
         {profils.length > 1 && (
@@ -318,4 +336,22 @@ const styles = StyleSheet.create({
   profilDiet: {
     fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1, color: COLORS.muted,
   },
+
+  abonnementBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.paper, borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 16, marginBottom: 24, gap: 12,
+  },
+  abonnementBtnTxt: {
+    fontFamily: FONTS.serif, fontSize: 16, color: COLORS.ink, marginBottom: 6,
+  },
+  planBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.terracotta,
+    borderRadius: 3, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  planBadgeTxt: {
+    fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.4, color: COLORS.cream,
+  },
+  abonnementArrow: { fontSize: 18, color: COLORS.terracotta },
 });

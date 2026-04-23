@@ -13,6 +13,7 @@ import ProfilScreen from './profil';
 import TicketScreen from './ticket';
 import PromosScreen from './promos';
 import OnboardingScreen from './onboarding';
+import AbonnementScreen from './abonnement';
 import { Recipe } from '../services/api';
 import { COLORS } from '../constants/theme';
 
@@ -40,6 +41,7 @@ export type RootStackParamList = {
   Ticket: undefined;
   Preferences: undefined;
   Promos: undefined;
+  Abonnement: undefined;
 };
 
 // ─── Tab navigator ────────────────────────────────────────────────────────────
@@ -142,6 +144,11 @@ export default function Navigator({ initialRoute }: { initialRoute: 'Onboarding'
         <RootStack.Screen
           name="Promos"
           component={PromosScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <RootStack.Screen
+          name="Abonnement"
+          component={AbonnementScreen}
           options={{ animation: 'slide_from_right' }}
         />
       </RootStack.Navigator>
