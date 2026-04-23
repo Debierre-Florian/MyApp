@@ -39,12 +39,9 @@ export default function ProfilScreen({ navigation }: Props) {
   }, [reloadPrefs, reloadFrigo]));
 
   const displayName = activeProfil.firstName.trim() || 'Utilisateur';
-  const initial = displayName
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const initial = activeProfil.firstName.trim()
+    ? activeProfil.firstName.trim().split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
 
   const avatarColor = PROFILE_COLORS[activeProfil.color];
   const canDelete = profils.length > 1;
