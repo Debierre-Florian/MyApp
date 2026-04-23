@@ -300,6 +300,20 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
+        {/* ── Promotions ───────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.promosBtn}
+          onPress={() => navigation.navigate('Promos')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.promosBtnIcon}>🏷️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.promosBtnTxt}>PROMOTIONS</Text>
+            <Text style={styles.promosBtnSub}>bons plans du moment</Text>
+          </View>
+          <Text style={styles.promosArrow}>→</Text>
+        </TouchableOpacity>
+
         {/* ── À utiliser d'abord ───────────────────────────────────────── */}
         {urgent.length > 0 && (
           <>
@@ -771,6 +785,35 @@ const styles = StyleSheet.create({
     color: COLORS.inkSoft,
     marginTop: 2,
   },
+
+  // Promotions
+  promosBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.terracottaSoft,
+    backgroundColor: COLORS.terracottaBg,
+    borderRadius: 4,
+    padding: 16,
+    marginBottom: 20,
+    gap: 12,
+  },
+  promosBtnIcon: { fontSize: 22 },
+  promosBtnTxt: {
+    fontFamily: FONTS.sans,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: COLORS.terracotta,
+  },
+  promosBtnSub: {
+    fontFamily: FONTS.serifItalic,
+    fontStyle: 'italic',
+    fontSize: 12,
+    color: COLORS.inkSoft,
+    marginTop: 2,
+  },
+  promosArrow: { fontSize: 16, color: COLORS.terracotta },
 
   // Section
   sectionHead: {

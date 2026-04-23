@@ -6,6 +6,8 @@ import { FrigoIngredient } from '../hooks/useFrigo';
 
 const NOTIFICATIONS_ENABLED_KEY = '@frigo_notifications_enabled';
 const DAILY_NOTIFICATION_ID = 'frigo-daily-expiring';
+const PROMOS_NOTIFICATION_ID = 'frigo-daily-promos';
+const PROMOS_LAST_SENT_KEY = '@frigo_promos_last_notif';
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +83,35 @@ export async function cancelDailyNotification(): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(DAILY_NOTIFICATION_ID).catch(() => {});
 }
 
+// ─── Promos notification (once per day) ───────────────────────────────────────
+
+export async function schedulePromosNotification(): Promise<void> {
+  try {
+    const lastSent = await AsyncStorage.getItem(PROMOS_LAST_SENT_KEY);
+    const today = new Date().toDateString();
+    if (lastSent === today) return;
+
+    await Notifications.cancelScheduledNotificationAsync(PROMOS_NOTIFICATION_ID).catch(() => {});
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: PROMOS_NOTIFICATION_ID,
+      content: {
+        title: 'FrigoAI 🏷️',
+        body: 'De nouvelles promos correspondent à votre frigo !',
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 5,
+        repeats: false,
+      },
+    });
+
+    await AsyncStorage.setItem(PROMOS_LAST_SENT_KEY, today);
+  } catch {
+    // silently ignore
+  }
+}
+
 // ─── Main init call (called from HomeScreen) ──────────────────────────────────
 
 export async function initNotifications(expiringIngredients: FrigoIngredient[]): Promise<void> {
@@ -94,4 +125,5 @@ export async function initNotifications(expiringIngredients: FrigoIngredient[]):
   if (!granted) return;
 
   await scheduleDailyNotification(expiringIngredients);
+  await schedulePromosNotification();
 }
