@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView } from 'expo-camera';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useFrigo } from '../hooks/useFrigo';
 import { usePreferences } from '../hooks/usePreferences';
@@ -51,7 +52,11 @@ export default function HomeScreen({ navigation }: Props) {
   const { preferences } = usePreferences();
   const score = useScore();
   const { profils, activeId, setActiveId, addProfil } = useProfils();
-  const { plan } = useAbonnement();
+  const { plan, reload: reloadPlan, maxProfils } = useAbonnement();
+
+  useFocusEffect(useCallback(() => {
+    reloadPlan();
+  }, [reloadPlan]));
 
   useEffect(() => {
     initNotifications(checkExpiringIngredients());
@@ -68,6 +73,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [ingredientText, setIngredientText] = useState('');
   const [addProfilVisible, setAddProfilVisible] = useState(false);
+  const [upgradeProfilVisible, setUpgradeProfilVisible] = useState(false);
   const [newFirstName, setNewFirstName] = useState('');
   const [newColor, setNewColor] = useState<ProfileColor>('terracotta');
 
@@ -211,7 +217,13 @@ export default function HomeScreen({ navigation }: Props) {
             })}
             <TouchableOpacity
               style={styles.addProfilBtn}
-              onPress={() => setAddProfilVisible(true)}
+              onPress={() => {
+                if (profils.length >= maxProfils) {
+                  setUpgradeProfilVisible(true);
+                } else {
+                  setAddProfilVisible(true);
+                }
+              }}
               hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
             >
               <Text style={styles.addProfilBtnTxt}>+</Text>
@@ -395,6 +407,42 @@ export default function HomeScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
       )}
+
+      {/* ── Modal upgrade profils ────────────────────────────────────── */}
+      <Modal
+        visible={upgradeProfilVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setUpgradeProfilVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalKicker}>LIMITE ATTEINTE</Text>
+            <Text style={styles.modalTitle}>Plus de profils ?</Text>
+            <Text style={styles.modalSubtitle}>
+              Passez Essentiel ou Premium pour ajouter des profils supplémentaires.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={() => setUpgradeProfilVisible(false)}
+                style={styles.modalCancelBtn}
+              >
+                <Text style={styles.modalCancelTxt}>Fermer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setUpgradeProfilVisible(false);
+                  navigation.navigate('Abonnement');
+                }}
+                style={styles.modalSubmitBtn}
+              >
+                <Text style={styles.modalSubmitTxt}>Voir les plans →</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Add profil modal ─────────────────────────────────────────── */}
       <Modal
