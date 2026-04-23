@@ -2,7 +2,7 @@ import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/na
 import { navigationRef } from '../services/navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import HomeScreen from './index';
 import AnalyseScreen from './analyse';
 import FrigoScreen from './frigo';
