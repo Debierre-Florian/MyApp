@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { estimateExpiry } from '../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -7,6 +8,7 @@ export interface FrigoIngredient {
   id: string;
   name: string;
   addedAt: string; // ISO date string
+  expiresAt?: string; // ISO date string
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -58,12 +60,14 @@ export function useFrigo() {
         );
         if (alreadyExists) return prev;
 
+        const expiresAt = new Date(Date.now() + estimateExpiry(trimmed) * 24 * 60 * 60 * 1000).toISOString();
         const updated = [
           ...prev,
           {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name: trimmed,
             addedAt: new Date().toISOString(),
+            expiresAt,
           },
         ];
         persist(updated);
@@ -89,6 +93,7 @@ export function useFrigo() {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name,
             addedAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + estimateExpiry(name) * 24 * 60 * 60 * 1000).toISOString(),
           }));
 
         if (!newEntries.length) return prev;
@@ -116,6 +121,22 @@ export function useFrigo() {
   );
 
   /**
+   * Update the expiry date of an ingredient and persist.
+   */
+  const updateExpiresAt = useCallback(
+    async (id: string, date: Date) => {
+      setIngredients((prev) => {
+        const updated = prev.map((i) =>
+          i.id === id ? { ...i, expiresAt: date.toISOString() } : i
+        );
+        persist(updated);
+        return updated;
+      });
+    },
+    [persist]
+  );
+
+  /**
    * Returns ingredients added more than 7 days ago.
    */
   const checkExpiringIngredients = useCallback((): FrigoIngredient[] => {
@@ -123,5 +144,5 @@ export function useFrigo() {
     return ingredients.filter((i) => new Date(i.addedAt).getTime() < cutoff);
   }, [ingredients]);
 
-  return { ingredients, loading, reload, addIngredient, addIngredients, removeIngredient, checkExpiringIngredients };
+  return { ingredients, loading, reload, addIngredient, addIngredients, removeIngredient, updateExpiresAt, checkExpiringIngredients };
 }

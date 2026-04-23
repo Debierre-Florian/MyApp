@@ -21,6 +21,11 @@ function daysOld(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
 }
 
+// Returns days until expiry (negative = already expired)
+function daysUntilExpiry(iso: string): number {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
 function isoWeek(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = date.getUTCDay() || 7;
@@ -35,10 +40,17 @@ export function computeScore(ingredients: FrigoIngredient[]): ScoreBreakdown {
   let green = 0;
 
   for (const ing of ingredients) {
-    const d = daysOld(ing.addedAt);
-    if (d >= 10) red += 1;
-    else if (d >= 5) orange += 1;
-    else green += 1;
+    if (ing.expiresAt) {
+      const d = daysUntilExpiry(ing.expiresAt);
+      if (d <= 0) red += 1;
+      else if (d <= 3) orange += 1;
+      else green += 1;
+    } else {
+      const d = daysOld(ing.addedAt);
+      if (d >= 10) red += 1;
+      else if (d >= 5) orange += 1;
+      else green += 1;
+    }
   }
 
   const raw = 100 - red * 5 - orange * 2;

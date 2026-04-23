@@ -200,6 +200,25 @@ async function callClaude(messages: object[]): Promise<string> {
   return textBlock.text;
 }
 
+// ─── Expiry estimation ────────────────────────────────────────────────────────
+
+const EXPIRY_RULES: Array<{ keywords: string[]; days: number }> = [
+  { keywords: ['lait', 'yaourt', 'fromage', 'crème', 'beurre', 'brie', 'camembert', 'ricotta', 'cottage', 'kéfir', 'gruyère', 'emmental', 'mozzarella'], days: 7 },
+  { keywords: ['poulet', 'viande', 'bœuf', 'porc', 'agneau', 'veau', 'canard', 'dinde', 'saumon', 'thon', 'crevette', 'poisson', 'merlan', 'cabillaud', 'jambon', 'lardons'], days: 3 },
+  { keywords: ['carotte', 'courgette', 'tomate', 'poireau', 'brocoli', 'chou', 'salade', 'épinard', 'haricot', 'poivron', 'aubergine', 'concombre', 'céleri', 'radis', 'navet', 'artichaut', 'asperge', 'ail', 'oignon', 'champignon'], days: 5 },
+  { keywords: ['pomme', 'poire', 'banane', 'fraise', 'framboise', 'cerise', 'abricot', 'pêche', 'prune', 'raisin', 'kiwi', 'mangue', 'ananas', 'melon', 'pastèque', 'citron', 'orange', 'clémentine', 'fruit'], days: 4 },
+  { keywords: ['riz', 'pâtes', 'farine', 'pain', 'semoule', 'quinoa', 'lentille', 'pois', 'haricot sec', 'avoine', 'céréale', 'biscuit', 'fécule'], days: 30 },
+  { keywords: ['conserve', 'boîte', 'sauce tomate', 'concentré', 'miel', 'confiture', 'huile', 'vinaigre', 'mayonnaise', 'ketchup', 'moutarde'], days: 365 },
+];
+
+export function estimateExpiry(ingredientName: string): number {
+  const lower = ingredientName.toLowerCase();
+  for (const rule of EXPIRY_RULES) {
+    if (rule.keywords.some((kw) => lower.includes(kw))) return rule.days;
+  }
+  return 7; // fallback
+}
+
 // ─── Mock ticket data ─────────────────────────────────────────────────────────
 
 const MOCK_TICKET_PRODUCTS = ['lait', 'beurre', 'carottes', 'pommes', 'yaourt', 'poulet', 'riz'];

@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useState } from 'react';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { StatusBar } from 'expo-status-bar';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { TabParamList } from './navigator';
@@ -19,11 +21,27 @@ function getDaysOld(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function daysUntilExpiry(iso: string): number {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
 type Freshness = 'fresh' | 'warn' | 'danger';
-function getFreshness(d: number): Freshness {
+function getFreshness(item: FrigoIngredient): Freshness {
+  if (item.expiresAt) {
+    const d = daysUntilExpiry(item.expiresAt);
+    if (d <= 0) return 'danger';
+    if (d <= 3) return 'warn';
+    return 'fresh';
+  }
+  const d = getDaysOld(item.addedAt);
   if (d >= 10) return 'danger';
   if (d >= 5) return 'warn';
   return 'fresh';
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 const FRESHNESS: Record<Freshness, { bar: string; label: string }> = {
@@ -35,15 +53,25 @@ const FRESHNESS: Record<Freshness, { bar: string; label: string }> = {
 function IngredientCard({
   item,
   onDelete,
+  onUpdateExpiry,
 }: {
   item: FrigoIngredient;
   onDelete: (id: string) => void;
+  onUpdateExpiry: (id: string, date: Date) => void;
 }) {
-  const days = getDaysOld(item.addedAt);
-  const f = getFreshness(days);
+  const [showPicker, setShowPicker] = useState(false);
+  const f = getFreshness(item);
   const cfg = FRESHNESS[f];
+  const days = getDaysOld(item.addedAt);
   const ageLabel =
     days === 0 ? "AJOUTÉ AUJOURD'HUI" : days === 1 ? 'IL Y A 1 JOUR' : `IL Y A ${days} JOURS`;
+
+  const expiryDate = item.expiresAt ? new Date(item.expiresAt) : undefined;
+
+  function handlePickerChange(_: DateTimePickerEvent, date?: Date) {
+    setShowPicker(false);
+    if (date) onUpdateExpiry(item.id, date);
+  }
 
   return (
     <View style={styles.card}>
@@ -51,6 +79,17 @@ function IngredientCard({
       <View style={styles.cardBody}>
         <Text style={styles.cardName}>{item.name}</Text>
         <Text style={styles.cardAge}>{ageLabel}</Text>
+        {expiryDate && (
+          <View style={styles.expiryRow}>
+            <Text style={styles.expiryTxt}>PÉREMPTION {formatDate(item.expiresAt!)}</Text>
+            <TouchableOpacity
+              onPress={() => setShowPicker(true)}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Text style={styles.pencilTxt}>✎</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       <Text style={[styles.cardStatus, { color: cfg.bar }]}>{cfg.label}</Text>
       <TouchableOpacity
@@ -60,20 +99,29 @@ function IngredientCard({
       >
         <Text style={styles.deleteTxt}>✕</Text>
       </TouchableOpacity>
+      {showPicker && (
+        <DateTimePicker
+          value={expiryDate ?? new Date()}
+          mode="date"
+          display="default"
+          minimumDate={new Date()}
+          onChange={handlePickerChange}
+        />
+      )}
     </View>
   );
 }
 
 export default function FrigoScreen({ navigation }: Props) {
-  const { ingredients, loading, removeIngredient } = useFrigo();
+  const { ingredients, loading, removeIngredient, updateExpiresAt } = useFrigo();
 
   const sorted = [...ingredients].sort(
     (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
   );
 
-  const freshCount = sorted.filter((i) => getFreshness(getDaysOld(i.addedAt)) === 'fresh').length;
-  const warnCount = sorted.filter((i) => getFreshness(getDaysOld(i.addedAt)) === 'warn').length;
-  const dangerCount = sorted.filter((i) => getFreshness(getDaysOld(i.addedAt)) === 'danger').length;
+  const freshCount = sorted.filter((i) => getFreshness(i) === 'fresh').length;
+  const warnCount = sorted.filter((i) => getFreshness(i) === 'warn').length;
+  const dangerCount = sorted.filter((i) => getFreshness(i) === 'danger').length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -124,7 +172,7 @@ export default function FrigoScreen({ navigation }: Props) {
           keyExtractor={(i) => i.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => <IngredientCard item={item} onDelete={removeIngredient} />}
+          renderItem={({ item }) => <IngredientCard item={item} onDelete={removeIngredient} onUpdateExpiry={updateExpiresAt} />}
         />
       )}
     </SafeAreaView>
@@ -189,6 +237,16 @@ const styles = StyleSheet.create({
   cardAge: {
     fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.2,
     color: COLORS.muted,
+  },
+  expiryRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3,
+  },
+  expiryTxt: {
+    fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.2,
+    color: COLORS.inkSoft,
+  },
+  pencilTxt: {
+    fontSize: 11, color: COLORS.inkSoft,
   },
   cardStatus: {
     fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
