@@ -28,6 +28,7 @@ import {
   cancelDailyNotification,
 } from '../services/notifications';
 import { COLORS, FONTS } from '../constants/theme';
+import { useProfils, PROFILE_COLORS } from '../hooks/useProfils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Preferences'>;
 
@@ -122,6 +123,7 @@ export default function PreferencesScreen({ navigation }: Props) {
     preferences, loading, updatePreferences, toggleAllergy,
     addFavorite, removeFavorite, addDisliked, removeDisliked,
   } = usePreferences();
+  const { activeProfil } = useProfils();
   const { checkExpiringIngredients } = useFrigo();
   const [notificationsEnabled, setNotifState] = useState(true);
 
@@ -139,6 +141,8 @@ export default function PreferencesScreen({ navigation }: Props) {
 
   if (loading) return null;
 
+  const profilInitial = (activeProfil.firstName.trim()[0] || '?').toUpperCase();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" backgroundColor={COLORS.cream} />
@@ -147,7 +151,14 @@ export default function PreferencesScreen({ navigation }: Props) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnTxt}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.kicker}>PRÉFÉRENCES</Text>
+        <View style={styles.headerCenter}>
+          <View style={[styles.headerAvatar, { backgroundColor: PROFILE_COLORS[activeProfil.color] }]}>
+            <Text style={styles.headerAvatarTxt}>{profilInitial}</Text>
+          </View>
+          <Text style={styles.kicker}>
+            {activeProfil.firstName.trim() ? activeProfil.firstName.trim().toUpperCase() : 'PRÉFÉRENCES'}
+          </Text>
+        </View>
         <View style={{ width: 36 }} />
       </View>
 
@@ -264,6 +275,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
+  },
+  headerCenter: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  headerAvatar: {
+    width: 24, height: 24, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerAvatarTxt: {
+    fontFamily: FONTS.serif, fontSize: 11, fontWeight: '700', color: '#fff',
   },
   backBtn: {
     width: 36, height: 36, alignItems: 'center', justifyContent: 'center',

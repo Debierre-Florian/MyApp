@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback } from 'react';
+import { useProfils } from './useProfils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,7 +14,7 @@ export interface UserPreferences {
   dislikedIngredients: string[];
 }
 
-// ─── Defaults ─────────────────────────────────────────────────────────────────
+// ─── Defaults & options ───────────────────────────────────────────────────────
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   firstName: '',
@@ -40,127 +40,83 @@ export const ALLERGY_OPTIONS: AllergyType[] = [
   'Soja',
 ];
 
-// ─── Storage key ──────────────────────────────────────────────────────────────
-
-const STORAGE_KEY = '@frigo_preferences';
-
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function usePreferences() {
-  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
-  const [loading, setLoading] = useState(true);
+  const { activeProfil, updateActiveProfil, loading } = useProfils();
 
-  const reload = useCallback(async () => {
-    try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setPreferences({ ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as UserPreferences) });
-      } else {
-        setPreferences(DEFAULT_PREFERENCES);
-      }
-    } catch {
-      // silently ignore storage errors
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const preferences: UserPreferences = {
+    firstName: activeProfil.firstName,
+    diet: activeProfil.diet,
+    allergies: activeProfil.allergies,
+    favoriteIngredients: activeProfil.favoriteIngredients,
+    dislikedIngredients: activeProfil.dislikedIngredients,
+  };
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  const persist = useCallback(async (prefs: UserPreferences) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-    } catch {
-      // silently ignore storage errors
-    }
-  }, []);
+  // No-op: state is managed by ProfilsContext
+  const reload = useCallback(async () => {}, []);
 
   const updatePreferences = useCallback(
     (patch: Partial<UserPreferences>) => {
-      setPreferences((prev) => {
-        const next = { ...prev, ...patch };
-        persist(next);
-        return next;
-      });
+      updateActiveProfil(patch);
     },
-    [persist]
+    [updateActiveProfil]
   );
 
   const toggleAllergy = useCallback(
     (allergy: AllergyType) => {
-      setPreferences((prev) => {
-        const has = prev.allergies.includes(allergy);
-        const next = {
-          ...prev,
-          allergies: has
-            ? prev.allergies.filter((a) => a !== allergy)
-            : [...prev.allergies, allergy],
-        };
-        persist(next);
-        return next;
+      const has = activeProfil.allergies.includes(allergy);
+      updateActiveProfil({
+        allergies: has
+          ? activeProfil.allergies.filter((a) => a !== allergy)
+          : [...activeProfil.allergies, allergy],
       });
     },
-    [persist]
+    [activeProfil.allergies, updateActiveProfil]
   );
 
   const addFavorite = useCallback(
     (name: string) => {
       const trimmed = name.trim();
       if (!trimmed) return;
-      setPreferences((prev) => {
-        if (prev.favoriteIngredients.some((i) => i.toLowerCase() === trimmed.toLowerCase()))
-          return prev;
-        const next = { ...prev, favoriteIngredients: [...prev.favoriteIngredients, trimmed] };
-        persist(next);
-        return next;
+      if (activeProfil.favoriteIngredients.some((i) => i.toLowerCase() === trimmed.toLowerCase()))
+        return;
+      updateActiveProfil({
+        favoriteIngredients: [...activeProfil.favoriteIngredients, trimmed],
       });
     },
-    [persist]
+    [activeProfil.favoriteIngredients, updateActiveProfil]
   );
 
   const removeFavorite = useCallback(
     (name: string) => {
-      setPreferences((prev) => {
-        const next = {
-          ...prev,
-          favoriteIngredients: prev.favoriteIngredients.filter((i) => i !== name),
-        };
-        persist(next);
-        return next;
+      updateActiveProfil({
+        favoriteIngredients: activeProfil.favoriteIngredients.filter((i) => i !== name),
       });
     },
-    [persist]
+    [activeProfil.favoriteIngredients, updateActiveProfil]
   );
 
   const addDisliked = useCallback(
     (name: string) => {
       const trimmed = name.trim();
       if (!trimmed) return;
-      setPreferences((prev) => {
-        if (prev.dislikedIngredients.some((i) => i.toLowerCase() === trimmed.toLowerCase()))
-          return prev;
-        const next = { ...prev, dislikedIngredients: [...prev.dislikedIngredients, trimmed] };
-        persist(next);
-        return next;
+      if (activeProfil.dislikedIngredients.some((i) => i.toLowerCase() === trimmed.toLowerCase()))
+        return;
+      updateActiveProfil({
+        dislikedIngredients: [...activeProfil.dislikedIngredients, trimmed],
       });
     },
-    [persist]
+    [activeProfil.dislikedIngredients, updateActiveProfil]
   );
 
   const removeDisliked = useCallback(
     (name: string) => {
-      setPreferences((prev) => {
-        const next = {
-          ...prev,
-          dislikedIngredients: prev.dislikedIngredients.filter((i) => i !== name),
-        };
-        persist(next);
-        return next;
+      updateActiveProfil({
+        dislikedIngredients: activeProfil.dislikedIngredients.filter((i) => i !== name),
       });
     },
-    [persist]
+    [activeProfil.dislikedIngredients, updateActiveProfil]
   );
 
   return {

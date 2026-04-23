@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -17,6 +17,7 @@ import { RootStackParamList, TabParamList } from './navigator';
 import { usePreferences } from '../hooks/usePreferences';
 import { useFrigo } from '../hooks/useFrigo';
 import { useScore } from '../hooks/useScore';
+import { useProfils, PROFILE_COLORS } from '../hooks/useProfils';
 import { COLORS, FONTS } from '../constants/theme';
 
 type Props = CompositeScreenProps<
@@ -24,111 +25,42 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >;
 
-type PlanId = 'free' | 'essential' | 'premium';
-
-interface Plan {
-  id: PlanId;
-  name: string;
-  price: string;
-  period: string;
-  features: string[];
-  highlight?: boolean;
-}
-
-const PLANS: Plan[] = [
-  {
-    id: 'free',
-    name: 'Gratuit',
-    price: '0€',
-    period: 'pour toujours',
-    features: ['3 analyses par jour', 'Recettes basiques', 'Gestion du frigo'],
-  },
-  {
-    id: 'essential',
-    name: 'Essentiel',
-    price: '4,99€',
-    period: 'par mois',
-    features: [
-      'Analyses illimitées',
-      'Recettes personnalisées',
-      'Préférences alimentaires',
-      'Historique des recettes',
-    ],
-    highlight: true,
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: '9,99€',
-    period: 'par mois',
-    features: [
-      'Tout Essentiel inclus',
-      'Planification de menus',
-      'Liste de courses auto',
-      'Support prioritaire',
-    ],
-  },
-];
-
-function PlanCard({ plan, active, onChoose }: { plan: Plan; active: boolean; onChoose: () => void }) {
-  return (
-    <View style={[styles.planCard, active && styles.planCardActive]}>
-      {plan.highlight && !active && (
-        <View style={styles.popularBadge}>
-          <Text style={styles.popularBadgeTxt}>POPULAIRE</Text>
-        </View>
-      )}
-      <Text style={[styles.planKicker, active && styles.planKickerActive]}>
-        {plan.name.toUpperCase()}
-      </Text>
-      <View style={styles.priceRow}>
-        <Text style={[styles.price, active && styles.priceActive]}>{plan.price}</Text>
-        <Text style={[styles.period, active && styles.periodActive]}>/{plan.period}</Text>
-      </View>
-      <View style={styles.featureList}>
-        {plan.features.map((f) => (
-          <View key={f} style={styles.featureRow}>
-            <Text style={[styles.featureCheck, active && styles.featureCheckActive]}>—</Text>
-            <Text style={[styles.featureTxt, active && styles.featureTxtActive]}>{f}</Text>
-          </View>
-        ))}
-      </View>
-      {active ? (
-        <View style={styles.activeBtn}>
-          <Text style={styles.activeBtnTxt}>PLAN ACTUEL</Text>
-        </View>
-      ) : (
-        <TouchableOpacity style={styles.chooseBtn} onPress={onChoose} activeOpacity={0.8}>
-          <Text style={styles.chooseBtnTxt}>CHOISIR →</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
 export default function ProfilScreen({ navigation }: Props) {
   const { preferences, reload: reloadPrefs } = usePreferences();
   const { ingredients, reload: reloadFrigo } = useFrigo();
   const score = useScore();
+  const { profils, activeProfil, activeId, deleteProfil } = useProfils();
 
   useFocusEffect(useCallback(() => {
     reloadPrefs();
     reloadFrigo();
   }, [reloadPrefs, reloadFrigo]));
 
-  const [activePlan, setActivePlan] = useState<PlanId>('free');
-
-  const handleChoose = (plan: Plan) => {
-    Alert.alert('Bientôt disponible', `L'abonnement ${plan.name} sera disponible prochainement.`);
-  };
-
-  const displayName = preferences.firstName.trim() || 'Utilisateur';
-  const initials = displayName
+  const displayName = activeProfil.firstName.trim() || 'Utilisateur';
+  const initial = displayName
     .split(' ')
     .map((w) => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  const avatarColor = PROFILE_COLORS[activeProfil.color];
+  const canDelete = profils.length > 1;
+
+  const handleDelete = () => {
+    Alert.alert(
+      `Supprimer ${displayName} ?`,
+      'Ce profil et toutes ses préférences seront effacés.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => deleteProfil(activeId),
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -153,14 +85,18 @@ export default function ProfilScreen({ navigation }: Props) {
 
         {/* Identity */}
         <View style={styles.identityRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarTxt}>{initials}</Text>
+          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarTxt}>{initial}</Text>
           </View>
-          <View style={styles.planChip}>
-            <Text style={styles.planChipTxt}>
-              PLAN {PLANS.find((p) => p.id === activePlan)?.name.toUpperCase()}
-            </Text>
-          </View>
+          {canDelete ? (
+            <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.8}>
+              <Text style={styles.deleteBtnTxt}>SUPPRIMER CE PROFIL</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.soloChip}>
+              <Text style={styles.soloChipTxt}>PROFIL UNIQUE</Text>
+            </View>
+          )}
         </View>
 
         {/* Score tile */}
@@ -207,6 +143,15 @@ export default function ProfilScreen({ navigation }: Props) {
               {preferences.allergies.length > 0 ? preferences.allergies.join(', ') : 'Aucune'}
             </Text>
           </View>
+          {preferences.favoriteIngredients.length > 0 && (
+            <>
+              <View style={styles.prefDivider} />
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>FAVORIS</Text>
+                <Text style={styles.prefValue}>{preferences.favoriteIngredients.join(', ')}</Text>
+              </View>
+            </>
+          )}
           {preferences.dislikedIngredients.length > 0 && (
             <>
               <View style={styles.prefDivider} />
@@ -218,20 +163,28 @@ export default function ProfilScreen({ navigation }: Props) {
           )}
         </View>
 
-        {/* Plans */}
-        <Text style={styles.sectionLabel}>ABONNEMENT</Text>
-        <Text style={styles.plansSubtitle}>
-          <Text style={styles.titleItalic}>Débloquez</Text> tout le potentiel de FrigoAI.
-        </Text>
-
-        {PLANS.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            active={activePlan === plan.id}
-            onChoose={() => handleChoose(plan)}
-          />
-        ))}
+        {/* Other profiles */}
+        {profils.length > 1 && (
+          <>
+            <Text style={styles.sectionLabel}>AUTRES PROFILS</Text>
+            <View style={styles.profilsList}>
+              {profils
+                .filter((p) => p.id !== activeId)
+                .map((p) => {
+                  const pInitial = (p.firstName.trim()[0] || '?').toUpperCase();
+                  return (
+                    <View key={p.id} style={styles.profilRow}>
+                      <View style={[styles.profilAvatar, { backgroundColor: PROFILE_COLORS[p.color] }]}>
+                        <Text style={styles.profilAvatarTxt}>{pInitial}</Text>
+                      </View>
+                      <Text style={styles.profilName}>{p.firstName || 'Sans nom'}</Text>
+                      <Text style={styles.profilDiet}>{p.diet}</Text>
+                    </View>
+                  );
+                })}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -270,19 +223,25 @@ const styles = StyleSheet.create({
   },
   avatar: {
     width: 56, height: 56, borderRadius: 28,
-    borderWidth: 2, borderColor: COLORS.terracotta,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.paper,
   },
   avatarTxt: {
-    fontFamily: FONTS.serif, fontSize: 22, color: COLORS.ink, fontWeight: '700',
+    fontFamily: FONTS.serif, fontSize: 22, color: '#fff', fontWeight: '700',
   },
-  planChip: {
+  deleteBtn: {
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: COLORS.terracotta, borderRadius: 4,
+  },
+  deleteBtnTxt: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
+    color: COLORS.terracotta,
+  },
+  soloChip: {
     paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 4, backgroundColor: COLORS.mustardBg,
     borderWidth: 1, borderColor: COLORS.mustardSoft,
   },
-  planChipTxt: {
+  soloChipTxt: {
     fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1.3,
     color: COLORS.ink,
   },
@@ -337,68 +296,26 @@ const styles = StyleSheet.create({
   },
   prefDivider: { height: 1, backgroundColor: COLORS.rule, marginVertical: 10 },
 
-  plansSubtitle: {
-    fontFamily: FONTS.serif, fontSize: 20,
-    color: COLORS.ink, marginBottom: 14,
-  },
-
-  planCard: {
+  profilsList: {
     backgroundColor: COLORS.paper, borderWidth: 1, borderColor: COLORS.rule,
-    borderRadius: 4, padding: 18, marginBottom: 12,
-    position: 'relative',
+    borderRadius: 4, overflow: 'hidden', marginBottom: 24,
   },
-  planCardActive: {
-    borderColor: COLORS.terracotta, borderWidth: 2,
-    backgroundColor: COLORS.terracottaBg,
+  profilRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: COLORS.rule,
   },
-  popularBadge: {
-    position: 'absolute', top: -9, left: 16,
-    backgroundColor: COLORS.mustard,
-    paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: 3,
+  profilAvatar: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
   },
-  popularBadgeTxt: {
-    fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.4,
-    color: COLORS.ink, fontWeight: '700',
+  profilAvatarTxt: {
+    fontFamily: FONTS.serif, fontSize: 13, fontWeight: '700', color: '#fff',
   },
-  planKicker: {
-    fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 1.5,
-    color: COLORS.inkSoft, marginBottom: 6,
+  profilName: {
+    flex: 1, fontFamily: FONTS.serif, fontSize: 15, color: COLORS.ink,
   },
-  planKickerActive: { color: COLORS.terracotta },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
-  price: {
-    fontFamily: FONTS.serif, fontSize: 32, fontWeight: '700',
-    color: COLORS.ink, letterSpacing: -1,
-  },
-  priceActive: { color: COLORS.terracotta },
-  period: {
-    fontFamily: FONTS.serifItalic, fontStyle: 'italic',
-    fontSize: 13, color: COLORS.muted, marginLeft: 4,
-  },
-  periodActive: { color: COLORS.inkSoft },
-  featureList: { gap: 6, marginBottom: 14 },
-  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  featureCheck: {
-    fontFamily: FONTS.mono, fontSize: 13, color: COLORS.terracotta, width: 12,
-  },
-  featureCheckActive: { color: COLORS.terracotta },
-  featureTxt: { flex: 1, fontFamily: FONTS.serif, fontSize: 14, color: COLORS.inkSoft },
-  featureTxtActive: { color: COLORS.ink },
-  activeBtn: {
-    paddingVertical: 12, borderRadius: 4,
-    backgroundColor: COLORS.terracotta, alignItems: 'center',
-  },
-  activeBtnTxt: {
-    color: COLORS.cream, fontFamily: FONTS.mono,
-    fontSize: 11, letterSpacing: 1.5, fontWeight: '700',
-  },
-  chooseBtn: {
-    paddingVertical: 12, borderRadius: 4,
-    borderWidth: 1, borderColor: COLORS.ink, alignItems: 'center',
-  },
-  chooseBtnTxt: {
-    color: COLORS.ink, fontFamily: FONTS.mono,
-    fontSize: 11, letterSpacing: 1.5, fontWeight: '700',
+  profilDiet: {
+    fontFamily: FONTS.mono, fontSize: 10, letterSpacing: 1, color: COLORS.muted,
   },
 });

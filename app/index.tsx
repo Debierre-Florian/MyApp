@@ -26,6 +26,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCamera } from '../hooks/useCamera';
 import { RootStackParamList, TabParamList } from './navigator';
 import { COLORS, FONTS } from '../constants/theme';
+import { useProfils, PROFILE_COLORS, COLOR_OPTIONS, type ProfileColor } from '../hooks/useProfils';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Home'>,
@@ -46,6 +47,7 @@ export default function HomeScreen({ navigation }: Props) {
   const { ingredients, checkExpiringIngredients } = useFrigo();
   const { preferences } = usePreferences();
   const score = useScore();
+  const { profils, activeId, setActiveId, addProfil } = useProfils();
 
   useEffect(() => {
     initNotifications(checkExpiringIngredients());
@@ -61,6 +63,17 @@ export default function HomeScreen({ navigation }: Props) {
 
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [ingredientText, setIngredientText] = useState('');
+  const [addProfilVisible, setAddProfilVisible] = useState(false);
+  const [newFirstName, setNewFirstName] = useState('');
+  const [newColor, setNewColor] = useState<ProfileColor>('terracotta');
+
+  const handleAddProfil = () => {
+    if (!newFirstName.trim()) return;
+    addProfil(newFirstName, newColor);
+    setAddProfilVisible(false);
+    setNewFirstName('');
+    setNewColor('terracotta');
+  };
 
   const handlePickFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -163,9 +176,6 @@ export default function HomeScreen({ navigation }: Props) {
     .slice(0, 3);
   const freshCount = ingredients.filter((i) => daysOld(i.addedAt) < 5).length;
 
-  const firstInitial =
-    (preferences.firstName.trim()[0] || 'F').toUpperCase();
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" backgroundColor={COLORS.cream} />
@@ -176,13 +186,33 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.topBarKicker}>
             № {score.weekNumber} · {dayLabel}
           </Text>
-          <TouchableOpacity
-            style={styles.avatarBtn}
-            onPress={() => navigation.navigate('Preferences')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.avatarTxt}>{firstInitial}</Text>
-          </TouchableOpacity>
+          <View style={styles.avatarsRow}>
+            {profils.map((p) => {
+              const initial = (p.firstName.trim()[0] || '?').toUpperCase();
+              const isActive = p.id === activeId;
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[
+                    styles.avatarBtn,
+                    { backgroundColor: PROFILE_COLORS[p.color] },
+                    isActive && styles.avatarBtnActive,
+                  ]}
+                  onPress={() => setActiveId(p.id)}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                >
+                  <Text style={styles.avatarTxt}>{initial}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={styles.addProfilBtn}
+              onPress={() => setAddProfilVisible(true)}
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            >
+              <Text style={styles.addProfilBtnTxt}>+</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Masthead ─────────────────────────────────────────────────── */}
@@ -301,6 +331,68 @@ export default function HomeScreen({ navigation }: Props) {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* ── Add profil modal ─────────────────────────────────────────── */}
+      <Modal
+        visible={addProfilVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddProfilVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalKicker}>NOUVEAU PROFIL</Text>
+            <Text style={styles.modalTitle}>Qui cuisine ?</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Prénom..."
+              placeholderTextColor={COLORS.muted}
+              value={newFirstName}
+              onChangeText={setNewFirstName}
+              autoCapitalize="words"
+              returnKeyType="done"
+              autoFocus
+            />
+            <Text style={styles.colorLabel}>COULEUR</Text>
+            <View style={styles.colorRow}>
+              {COLOR_OPTIONS.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  style={[
+                    styles.colorDot,
+                    { backgroundColor: PROFILE_COLORS[c] },
+                    newColor === c && styles.colorDotSelected,
+                  ]}
+                  onPress={() => setNewColor(c)}
+                />
+              ))}
+            </View>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={() => {
+                  setAddProfilVisible(false);
+                  setNewFirstName('');
+                  setNewColor('terracotta');
+                }}
+                style={styles.modalCancelBtn}
+              >
+                <Text style={styles.modalCancelTxt}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAddProfil}
+                style={[styles.modalSubmitBtn, !newFirstName.trim() && styles.modalSubmitDisabled]}
+                disabled={!newFirstName.trim()}
+              >
+                <Text style={styles.modalSubmitTxt}>Créer →</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* ── Manual modal ─────────────────────────────────────────────── */}
       <Modal
         visible={manualModalVisible}
@@ -382,20 +474,70 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: COLORS.inkSoft,
   },
+  avatarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   avatarBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    borderWidth: 1.5,
-    borderColor: COLORS.ink,
     alignItems: 'center',
     justifyContent: 'center',
+    opacity: 0.65,
+  },
+  avatarBtnActive: {
+    opacity: 1,
+    borderWidth: 2,
+    borderColor: COLORS.ink,
   },
   avatarTxt: {
     fontFamily: FONTS.serif,
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.ink,
+    color: COLORS.white,
+  },
+  addProfilBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    borderColor: COLORS.rule,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.paper,
+  },
+  addProfilBtnTxt: {
+    fontFamily: FONTS.sans,
+    fontSize: 20,
+    color: COLORS.inkSoft,
+    lineHeight: 22,
+    marginTop: -1,
+  },
+  colorLabel: {
+    fontFamily: FONTS.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: COLORS.olive,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  colorRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  colorDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    opacity: 0.65,
+  },
+  colorDotSelected: {
+    opacity: 1,
+    borderWidth: 3,
+    borderColor: COLORS.ink,
   },
 
   // Masthead

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Navigator from './app/navigator';
+import { ProfilsProvider } from './hooks/useProfils';
 
 const ONBOARDING_KEY = 'hasSeenOnboarding';
 
@@ -15,5 +16,9 @@ export default function App() {
 
   if (!initialRoute) return null;
 
-  return <Navigator initialRoute={initialRoute} />;
+  return (
+    <ProfilsProvider>
+      <Navigator initialRoute={initialRoute} />
+    </ProfilsProvider>
+  );
 }
