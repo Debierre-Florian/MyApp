@@ -5,7 +5,13 @@ export type PlanId = 'gratuit' | 'essentiel' | 'premium';
 
 const KEY = '@abonnement_plan';
 
-const PLAN_MAX_PROFILS: Record<PlanId, number> = {
+export const PLAN_RANK: Record<PlanId, number> = {
+  gratuit: 0,
+  essentiel: 1,
+  premium: 2,
+};
+
+export const PLAN_MAX_PROFILS: Record<PlanId, number> = {
   gratuit: 1,
   essentiel: 2,
   premium: 5,

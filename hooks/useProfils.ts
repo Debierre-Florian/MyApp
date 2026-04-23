@@ -60,6 +60,7 @@ interface ProfilsState {
   addProfil: (firstName: string, color: ProfileColor) => Profil;
   deleteProfil: (id: string) => void;
   updateActiveProfil: (patch: Partial<Omit<Profil, 'id'>>) => void;
+  trimProfilsToMax: (max: number) => void;
 }
 
 const ProfilsContext = createContext<ProfilsState | null>(null);
@@ -181,6 +182,20 @@ export function ProfilsProvider({ children }: { children: ReactNode }) {
     [persist]
   );
 
+  const trimProfilsToMax = useCallback(
+    (max: number) => {
+      setProfils((prev) => {
+        if (prev.length <= max) return prev;
+        const next = prev.slice(0, max);
+        const newActiveId = next.find((p) => p.id === activeId) ? activeId : next[0].id;
+        setActiveIdState(newActiveId);
+        persist(next, newActiveId);
+        return next;
+      });
+    },
+    [activeId, persist]
+  );
+
   const updateActiveProfil = useCallback(
     (patch: Partial<Omit<Profil, 'id'>>) => {
       setProfils((prev) => {
@@ -210,6 +225,7 @@ export function ProfilsProvider({ children }: { children: ReactNode }) {
         addProfil,
         deleteProfil,
         updateActiveProfil,
+        trimProfilsToMax,
       },
     },
     children

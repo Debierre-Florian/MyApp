@@ -14,7 +14,8 @@ import { useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from './navigator';
 import { COLORS, FONTS } from '../constants/theme';
-import { useAbonnement, PlanId } from '../hooks/useAbonnement';
+import { useAbonnement, PlanId, PLAN_RANK, PLAN_MAX_PROFILS } from '../hooks/useAbonnement';
+import { useProfils } from '../hooks/useProfils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Abonnement'>;
 
@@ -61,10 +62,23 @@ const PLANS: Plan[] = [
 
 export default function AbonnementScreen({ navigation }: Props) {
   const { plan: currentPlan, savePlan } = useAbonnement();
+  const { profils, trimProfilsToMax } = useProfils();
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+
+  const isDowngrade = selectedPlan
+    ? PLAN_RANK[selectedPlan.id] < PLAN_RANK[currentPlan]
+    : false;
+
+  const excessCount = selectedPlan
+    ? Math.max(0, profils.length - PLAN_MAX_PROFILS[selectedPlan.id])
+    : 0;
 
   const handleConfirm = async () => {
     if (!selectedPlan) return;
+    const max = PLAN_MAX_PROFILS[selectedPlan.id];
+    if (profils.length > max) {
+      trimProfilsToMax(max);
+    }
     await savePlan(selectedPlan.id);
     setSelectedPlan(null);
     Alert.alert('Abonnement activé', 'Stripe sera intégré prochainement.');
@@ -144,6 +158,14 @@ export default function AbonnementScreen({ navigation }: Props) {
                     <Text key={f} style={styles.sheetFeatureTxt}>· {f}</Text>
                   ))}
                 </View>
+                {isDowngrade && excessCount > 0 && (
+                  <View style={styles.downgradeWarning}>
+                    <Text style={styles.downgradeWarningTxt}>
+                      ⚠️ Attention : passer en {selectedPlan.label} supprimera{' '}
+                      {excessCount} profil{excessCount > 1 ? 's' : ''} supplémentaire{excessCount > 1 ? 's' : ''}.
+                    </Text>
+                  </View>
+                )}
               </>
             )}
             <View style={styles.sheetActions}>
@@ -259,9 +281,17 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.mono, fontSize: 16, color: COLORS.terracotta,
     letterSpacing: 0.5, marginBottom: 16,
   },
-  sheetFeatures: { marginBottom: 24, gap: 6 },
+  sheetFeatures: { marginBottom: 12, gap: 6 },
   sheetFeatureTxt: {
     fontFamily: FONTS.serif, fontSize: 15, color: COLORS.inkSoft,
+  },
+  downgradeWarning: {
+    backgroundColor: '#FDE8E8',
+    borderWidth: 1, borderColor: '#E57373',
+    borderRadius: 4, padding: 12, marginBottom: 16,
+  },
+  downgradeWarningTxt: {
+    fontFamily: FONTS.serif, fontSize: 14, color: '#C62828', lineHeight: 20,
   },
   sheetActions: { flexDirection: 'row', gap: 12 },
   cancelBtn: {
