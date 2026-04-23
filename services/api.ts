@@ -32,32 +32,53 @@ const API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
 const SYSTEM_PROMPT = `Tu es un assistant culinaire expert. Tu analyses les ingrédients disponibles et proposes des recettes adaptées aux préférences de l'utilisateur.
 Tu réponds TOUJOURS en JSON pur, sans markdown, sans bloc de code, sans texte avant ou après. Uniquement le JSON.`;
 
-function buildPreferencesBlock(prefs?: UserPreferences): string {
-  if (!prefs) return '';
+export interface RatingsHint {
+  likedIngredients: string[];
+  dislikedIngredients: string[];
+}
+
+function buildPreferencesBlock(prefs?: UserPreferences, ratings?: RatingsHint): string {
   const lines: string[] = [];
 
-  if (prefs.firstName) {
+  if (prefs?.firstName) {
     lines.push(`Prénom de l'utilisateur : ${prefs.firstName}.`);
   }
-  if (prefs.diet && prefs.diet !== 'Omnivore') {
+  if (prefs?.diet && prefs.diet !== 'Omnivore') {
     lines.push(`Régime alimentaire : ${prefs.diet}. Respecte impérativement ce régime dans toutes les recettes.`);
   }
-  if (prefs.allergies.length > 0) {
+  if (prefs?.allergies && prefs.allergies.length > 0) {
     lines.push(`Allergies (à exclure absolument) : ${prefs.allergies.join(', ')}.`);
   }
-  if (prefs.favoriteIngredients.length > 0) {
-    lines.push(`Ingrédients favoris (à privilégier si possible) : ${prefs.favoriteIngredients.join(', ')}.`);
+
+  const favIngredients = [
+    ...(prefs?.favoriteIngredients ?? []),
+    ...(ratings?.likedIngredients ?? []),
+  ];
+  if (favIngredients.length > 0) {
+    lines.push(`Ingrédients favoris (à privilégier si possible) : ${[...new Set(favIngredients)].join(', ')}.`);
   }
-  if (prefs.dislikedIngredients.length > 0) {
-    lines.push(`Ingrédients détestés (à éviter) : ${prefs.dislikedIngredients.join(', ')}.`);
+
+  const dislikedIngredients = [
+    ...(prefs?.dislikedIngredients ?? []),
+    ...(ratings?.dislikedIngredients ?? []),
+  ];
+  if (dislikedIngredients.length > 0) {
+    lines.push(`Ingrédients à éviter (détestés ou mal notés) : ${[...new Set(dislikedIngredients)].join(', ')}.`);
+  }
+
+  if (ratings?.likedIngredients && ratings.likedIngredients.length > 0) {
+    lines.push(`L'utilisateur a adoré des recettes avec ces ingrédients : ${ratings.likedIngredients.slice(0, 10).join(', ')}. Propose des recettes dans le même esprit.`);
+  }
+  if (ratings?.dislikedIngredients && ratings.dislikedIngredients.length > 0) {
+    lines.push(`L'utilisateur n'a pas apprécié des recettes avec : ${ratings.dislikedIngredients.slice(0, 10).join(', ')}. Évite ces ingrédients autant que possible.`);
   }
 
   if (lines.length === 0) return '';
   return `\n\nPréférences de l'utilisateur :\n${lines.join('\n')}`;
 }
 
-const buildUserPrompt = (ingredientText: string, prefs?: UserPreferences) => `
-Voici les ingrédients disponibles : ${ingredientText}${buildPreferencesBlock(prefs)}
+const buildUserPrompt = (ingredientText: string, prefs?: UserPreferences, ratings?: RatingsHint) => `
+Voici les ingrédients disponibles : ${ingredientText}${buildPreferencesBlock(prefs, ratings)}
 
 Réponds UNIQUEMENT avec ce JSON (sans markdown) :
 {
@@ -268,8 +289,9 @@ export async function analysePhoto(params: {
   photoUri?: string;
   ingredientText?: string;
   preferences?: UserPreferences;
+  ratings?: RatingsHint;
 }): Promise<AnalyseResult> {
-  const { photoUri, ingredientText, preferences } = params;
+  const { photoUri, ingredientText, preferences, ratings } = params;
 
   let messages: object[];
 
@@ -292,7 +314,7 @@ export async function analysePhoto(params: {
           },
           {
             type: 'text',
-            text: buildUserPrompt('tous les ingrédients visibles sur cette photo de frigo', preferences),
+            text: buildUserPrompt('tous les ingrédients visibles sur cette photo de frigo', preferences, ratings),
           },
         ],
       },
@@ -302,7 +324,7 @@ export async function analysePhoto(params: {
     messages = [
       {
         role: 'user',
-        content: buildUserPrompt(ingredientText.trim(), preferences),
+        content: buildUserPrompt(ingredientText.trim(), preferences, ratings),
       },
     ];
   } else {

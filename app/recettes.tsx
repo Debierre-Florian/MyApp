@@ -70,7 +70,14 @@ export default function RecettesScreen({ navigation }: Props) {
           <Text style={styles.metaDot}>·</Text>
           <Text style={styles.metaDifficulty}>{item.recipe.difficulty}</Text>
         </View>
-        <Text style={styles.viewedAt}>{formatViewedAt(item.viewedAt)}</Text>
+        <View style={styles.cardBottomRow}>
+          <Text style={styles.viewedAt}>{formatViewedAt(item.viewedAt)}</Text>
+          {item.rating !== undefined && (
+            <Text style={styles.cardStars}>
+              {Array.from({ length: 5 }, (_, i) => i < item.rating! ? '★' : '☆').join('')}
+            </Text>
+          )}
+        </View>
       </View>
       <Text style={styles.arrow}>→</Text>
     </TouchableOpacity>
@@ -179,9 +186,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 2,
     borderWidth: 1, borderColor: COLORS.oliveSoft, borderRadius: 3,
   },
+  cardBottomRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
   viewedAt: {
     fontFamily: FONTS.mono, fontSize: 9, letterSpacing: 1.2,
     color: COLORS.muted,
+  },
+  cardStars: {
+    fontSize: 12, color: COLORS.terracotta, letterSpacing: 1,
   },
   arrow: { fontSize: 18, color: COLORS.ink },
   empty: {

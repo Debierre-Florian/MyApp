@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { analysePhoto, type Recipe } from '../services/api';
 import { useFrigo } from '../hooks/useFrigo';
 import { usePreferences } from '../hooks/usePreferences';
+import { useRatings } from '../hooks/useRatings';
 import { RECIPES_HISTORY_KEY } from './recettes';
 import { COLORS, FONTS } from '../constants/theme';
 
@@ -91,12 +92,13 @@ export default function AnalyseScreen({ route, navigation }: Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const { addIngredients } = useFrigo();
   const { preferences } = usePreferences();
+  const ratings = useRatings();
 
   useEffect(() => {
     let cancelled = false;
     async function run() {
       try {
-        const result = await analysePhoto({ photoUri, ingredientText, preferences });
+        const result = await analysePhoto({ photoUri, ingredientText, preferences, ratings });
         if (cancelled) return;
         setRecipes(result.recipes);
         setDetected(result.detectedIngredients);

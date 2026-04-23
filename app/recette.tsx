@@ -5,6 +5,8 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
@@ -19,9 +21,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RecetteDetail'>;
 export default function RecetteScreen({ route, navigation }: Props) {
   const { recipe } = route.params;
   const { ingredients: frigoIngredients } = useFrigo();
-  const { addToHistorique } = useHistorique();
+  const { addToHistorique, rateRecipe, historique } = useHistorique();
 
   useEffect(() => { addToHistorique(recipe); }, []);
+
+  const existing = historique.find((e) => e.recipe.name === recipe.name);
+  const [selectedRating, setSelectedRating] = useState<number>(existing?.rating ?? 0);
+  const [comment, setComment] = useState<string>(existing?.comment ?? '');
+  const [ratingSaved, setRatingSaved] = useState<boolean>(!!existing?.rating);
+
+  const handleSaveRating = async () => {
+    if (selectedRating === 0) return;
+    await rateRecipe(recipe.name, selectedRating, comment.trim() || undefined);
+    setRatingSaved(true);
+    Alert.alert('Avis enregistré', 'Merci ! Vos préférences influenceront les prochaines suggestions.');
+  };
 
   const frigoNames = new Set(frigoIngredients.map((i) => i.name.toLowerCase()));
   const [checked, setChecked] = useState<Set<number>>(new Set());
@@ -138,6 +152,44 @@ export default function RecetteScreen({ route, navigation }: Props) {
             <Text style={styles.resetBtnTxt}>RECOMMENCER LA RECETTE</Text>
           </TouchableOpacity>
         )}
+
+        {/* Section notation */}
+        <View style={styles.ratingSection}>
+          <Text style={styles.sectionLabel}>VOTRE AVIS</Text>
+          <View style={styles.starsRow}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <TouchableOpacity
+                key={star}
+                onPress={() => { setSelectedRating(star); setRatingSaved(false); }}
+                activeOpacity={0.7}
+                style={styles.starBtn}
+              >
+                <Text style={[styles.starIcon, selectedRating >= star && styles.starIconActive]}>
+                  ★
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Un commentaire ?"
+            placeholderTextColor={COLORS.muted}
+            value={comment}
+            onChangeText={(t) => { setComment(t); setRatingSaved(false); }}
+            multiline
+            numberOfLines={2}
+          />
+          <TouchableOpacity
+            style={[styles.saveRatingBtn, selectedRating === 0 && styles.saveRatingBtnDisabled]}
+            activeOpacity={0.8}
+            onPress={handleSaveRating}
+            disabled={selectedRating === 0}
+          >
+            <Text style={[styles.saveRatingBtnTxt, ratingSaved && styles.saveRatingBtnTxtSaved]}>
+              {ratingSaved ? '✓ AVIS ENREGISTRÉ' : 'ENREGISTRER MON AVIS'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -269,5 +321,43 @@ const styles = StyleSheet.create({
   resetBtnTxt: {
     color: COLORS.inkSoft, fontFamily: FONTS.mono,
     fontSize: 11, letterSpacing: 1.5,
+  },
+
+  ratingSection: {
+    marginTop: 28,
+    paddingTop: 20,
+    borderTopWidth: 1, borderTopColor: COLORS.rule,
+  },
+  starsRow: {
+    flexDirection: 'row', gap: 6, marginBottom: 16,
+  },
+  starBtn: { padding: 4 },
+  starIcon: {
+    fontSize: 32, color: COLORS.rule,
+  },
+  starIconActive: {
+    color: COLORS.terracotta,
+  },
+  commentInput: {
+    backgroundColor: COLORS.paper,
+    borderWidth: 1, borderColor: COLORS.rule,
+    borderRadius: 4, padding: 12,
+    fontFamily: FONTS.serif, fontSize: 14, color: COLORS.ink,
+    lineHeight: 20, marginBottom: 14,
+    minHeight: 60, textAlignVertical: 'top',
+  },
+  saveRatingBtn: {
+    paddingVertical: 12, borderRadius: 4,
+    backgroundColor: COLORS.terracotta, alignItems: 'center',
+  },
+  saveRatingBtnDisabled: {
+    backgroundColor: COLORS.creamDeep,
+  },
+  saveRatingBtnTxt: {
+    color: COLORS.cream, fontFamily: FONTS.mono,
+    fontSize: 11, letterSpacing: 1.5,
+  },
+  saveRatingBtnTxtSaved: {
+    color: COLORS.olive,
   },
 });
